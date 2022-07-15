@@ -24,7 +24,7 @@ query($where: UserWhere!) {
 
 GQL_ME = '''
 query Me {
-  data: me {
+  data: viewer {
     id
     email
   }
