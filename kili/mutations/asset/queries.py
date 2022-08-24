@@ -72,11 +72,3 @@ mutation($where: AssetWhere!) {{
   }}
 }}
 """
-
-GQL_CREATE_UPLOAD_BUCKET_SIGNED_URLS = """
-mutation($projectID: ID!, $size: Int) {{
-    data: {{
-      urls: createUploadBucketSignedUrls(projectID: $projectID, size: $size)
-    }}
-}}
-"""
