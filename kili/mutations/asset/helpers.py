@@ -4,111 +4,79 @@ Helpers for the asset mutations
 import csv
 import mimetypes
 import os
-from json import dumps
+
+# from json import dumps
 from pathlib import Path
-from typing import List, Union
-from uuid import uuid4
+from typing import Dict, List, Union
 
 import requests
 
 from kili.constants import LARGE_IMAGE_THRESHOLD_SIZE
-from kili.graphql_client import GraphQLClient
-from kili.queries.asset.queries import GQL_CREATE_UPLOAD_BUCKET_SIGNED_URLS
 
 from ...helpers import (
     check_file_mime_type,
     convert_to_list_of_none,
-    encode_base64,
     format_metadata,
     is_none_or_empty,
     is_url,
 )
-from .queries import GQL_APPEND_MANY_FRAMES_TO_DATASET, GQL_APPEND_MANY_TO_DATASET
+
+# def encode_object_if_not_url(content, input_type):
+#     """
+#     Return the object if it is a url, else it should be a path to a file.
+#     In that case, the file is returned as a base64 string
+#     """
+#     if is_url(content):
+#         return content
+#     if check_file_mime_type(content, input_type):
+#         return encode_base64(content)
+#     return None
 
 
-def encode_object_if_not_url(content, input_type):
-    """
-    Return the object if it is a url, else it should be a path to a file.
-    In that case, the file is returned as a base64 string
-    """
-    if is_url(content):
-        return content
-    if check_file_mime_type(content, input_type):
-        return encode_base64(content)
-    return None
+# def process_frame_json_content(json_content):
+#     """
+#     Function to process individual json_content of VIDEO projects
+#     """
+#     if is_url(json_content):
+#         return json_content
+#     json_content_index = range(len(json_content))
+#     json_content_urls = [encode_object_if_not_url(content, "IMAGE") for content in json_content]
+#     return dumps(dict(zip(json_content_index, json_content_urls)))
 
 
-def process_frame_json_content(json_content):
-    """
-    Function to process individual json_content of VIDEO projects
-    """
-    if is_url(json_content):
-        return json_content
-    json_content_index = range(len(json_content))
-    json_content_urls = [encode_object_if_not_url(content, "IMAGE") for content in json_content]
-    return dumps(dict(zip(json_content_index, json_content_urls)))
+# def get_file_mimetype(
+#     content_array: Union[List[str], None], json_content_array: Union[List[str], None]
+# ) -> Union[str, None]:
+#     """
+#     Returns the mimetype of the first file of the content array
+#     """
+#     if json_content_array is not None:
+#         return None
+#     if content_array is None:
+#         return None
+#     if len(content_array) > 0:
+#         first_asset = content_array[0]
+#         if is_url(first_asset):
+#             return None
+#         if not os.path.exists(first_asset):
+#             return None
+#         return mimetypes.guess_type(first_asset)[0]
+#     return None
 
 
-def get_file_mimetype(
-    content_array: Union[List[str], None], json_content_array: Union[List[str], None]
-) -> Union[str, None]:
-    """
-    Returns the mimetype of the first file of the content array
-    """
-    if json_content_array is not None:
-        return None
-    if content_array is None:
-        return None
-    if len(content_array) > 0:
-        first_asset = content_array[0]
-        if is_url(first_asset):
-            return None
-        if not os.path.exists(first_asset):
-            return None
-        return mimetypes.guess_type(first_asset)[0]
-    return None
-
-
-def process_json_content(
-    input_type: str,
-    content_array: List[str],
-    json_content_array: Union[List[str], None],
-):
-    """
-    Process the array of json_contents
-    """
-    if json_content_array is None:
-        return [""] * len(content_array)
-    if input_type in ("FRAME", "VIDEO"):
-        return list(map(process_frame_json_content, json_content_array))
-    return [element if is_url(element) else dumps(element) for element in json_content_array]
-
-
-def process_content(
-    input_type: str,
-    content_array: Union[List[str], None],
-    json_content_array: Union[List[List[Union[dict, str]]], None],
-):
-    """
-    Process the array of contents
-    """
-    return
-    # if input_type in ["IMAGE", "PDF"]:
-    #     return [
-    #         content
-    #         if is_url(content)
-    #         else (
-    #             content
-    #             if (json_content_array is not None and json_content_array[i] is not None)
-    #             else (encode_base64(content) if check_file_mime_type(content, input_type) else None)
-    #         )
-    #         for i, content in enumerate(content_array)
-    #     ]
-    # if input_type in ("FRAME", "VIDEO") and json_content_array is None:
-    #     content_array = [encode_object_if_not_url(content, input_type) for content in content_array]
-    # if input_type == "TIME_SERIES":
-    #     content_array = list(map(process_time_series, content_array))
-    # return content_array
+# def process_json_content(
+#     input_type: str,
+#     content_array: List[str],
+#     json_content_array: Union[List[str], None],
+# ):
+#     """
+#     Process the array of json_contents
+#     """
+#     if json_content_array is None:
+#         return [""] * len(content_array)
+#     if input_type in ("FRAME", "VIDEO"):
+#         return list(map(process_frame_json_content, json_content_array))
+#     return [element if is_url(element) else dumps(element) for element in json_content_array]
 
 
 def process_time_series(content: str) -> Union[str, None]:
@@ -176,76 +144,70 @@ def add_video_parameters(json_metadata, should_use_native_video):
     return {**json_metadata, "processingParameters": processing_parameters}
 
 
-def process_metadata(
-    input_type: str,
-    content_array: Union[List[str], None],
-    json_content_array: Union[List[List[Union[dict, str]]], None],
-    json_metadata_array: Union[List[dict], None],
-):
-    """
-    Process the metadata of each asset
-    """
-    json_metadata_array = (
-        [{}] * len(content_array) if json_metadata_array is None else json_metadata_array
-    )
-    if input_type in ("FRAME", "VIDEO"):
-        should_use_native_video = json_content_array is None
-        json_metadata_array = [
-            add_video_parameters(json_metadata, should_use_native_video)
-            for json_metadata in json_metadata_array
-        ]
-    return list(map(dumps, json_metadata_array))
+# def process_metadata(
+#     input_type: str,
+#     content_array: Union[List[str], None],
+#     json_content_array: Union[List[List[Union[dict, str]]], None],
+#     json_metadata_array: Union[List[dict], None],
+# ):
+#     """
+#     Process the metadata of each asset
+#     """
+#     json_metadata_array = (
+#         [{}] * len(content_array) if json_metadata_array is None else json_metadata_array
+#     )
+#     if input_type in ("FRAME", "VIDEO"):
+#         should_use_native_video = json_content_array is None
+#         json_metadata_array = [
+#             add_video_parameters(json_metadata, should_use_native_video)
+#             for json_metadata in json_metadata_array
+#         ]
+#     return list(map(dumps, json_metadata_array))
 
 
-def get_request_to_execute(
-    input_type: str,
-    json_metadata_array: Union[List[dict], None],
-    json_content_array: Union[List[List[Union[dict, str]]], None],
-    mime_type: Union[str, None],
-) -> str:
-    """
-    Selects the right query to run versus the data given
-    """
-    if json_content_array is not None:
-        return GQL_APPEND_MANY_TO_DATASET, None
-    if input_type not in ("FRAME", "VIDEO"):
-        if input_type == "IMAGE" and mime_type == "image/tiff":
-            return GQL_APPEND_MANY_FRAMES_TO_DATASET, "GEO_SATELLITE"
-        return GQL_APPEND_MANY_TO_DATASET, None
-    if json_metadata_array is None:
-        return GQL_APPEND_MANY_TO_DATASET, None
-    if (
-        isinstance(json_metadata_array, list)
-        and len(json_metadata_array) > 0
-        and not json_metadata_array[0]
-        .get("processingParameters", {})
-        .get("shouldUseNativeVideo", True)
-    ):
-        return GQL_APPEND_MANY_FRAMES_TO_DATASET, "VIDEO"
-    return GQL_APPEND_MANY_TO_DATASET, None
+class DataImportProcess:
+    Synchronous = "synchronous"
+    Asynchronous = "asynchronous"
 
 
-def split_data_index_by_upload_process(
-    input_type, content_array, video_processing_parameters_array
-) -> dict:
+class DataLocation:
+    Local = "local"
+    Hosted = "hosted"
+
+
+class AsynchronousUploadType:
+    GeoSatellite = "GEO_SATELLITE"
+    Video = "VIDEO"
+
+
+def split_data_index_by_upload_process(input_type, content_array, json_metadata_array) -> dict:
     indexes_upload_process = {
-        ("synchronous", "local_file"): [],
-        ("synchronous", "hosted_file"): [],
-        ("asynchronous", "local_file"): [],
-        ("asynchronous", "hosted_file"): [],
+        (DataImportProcess.Synchronous, DataLocation.Local): [],
+        (DataImportProcess.Synchronous, DataLocation.Hosted): [],
+        (DataImportProcess.Asynchronous, DataLocation.Local): [],
+        (DataImportProcess.Asynchronous, DataLocation.Hosted): [],
     }
     for index, content in enumerate(content_array):
         is_url_content = is_url(content)
         is_local_file = Path(content).is_file()
-        is_video_into_frames = input_type in (
-            "FRAME",
-            "VIDEO",
-        ) and not video_processing_parameters_array[index].get("shouldUseNativeVideo", True)
+
+        is_video_into_frames = (
+            input_type
+            in (
+                "FRAME",
+                "VIDEO",
+            )
+            and not json_metadata_array[index]["processingParameters"]["shouldUseNativeVideo"]
+        )
         if is_url_content:
             if is_video_into_frames:
-                indexes_upload_process["asynchronous", "hosted_file"].append(index)
+                indexes_upload_process[DataImportProcess.Asynchronous, DataLocation.Hosted].append(
+                    index
+                )
             else:
-                indexes_upload_process["synchronous", "hosted_file"].append(index)
+                indexes_upload_process[DataImportProcess.Synchronous, DataLocation.Hosted].append(
+                    index
+                )
         elif is_local_file:
             is_image_tiff = (
                 input_type == "IMAGE" and mimetypes.guess_type(content)[0] == "image/tiff"
@@ -254,73 +216,16 @@ def split_data_index_by_upload_process(
                 input_type == "IMAGE" and os.path.getsize(content) >= LARGE_IMAGE_THRESHOLD_SIZE
             )
             if is_image_tiff or is_large_image or is_video_into_frames:
-                indexes_upload_process["asynchronous", "local_file"].append(index)
+                indexes_upload_process[DataImportProcess.Asynchronous, DataLocation.Local].append(
+                    index
+                )
             else:
-                indexes_upload_process["synchronous", "local_file"].append(index)
+                indexes_upload_process[DataImportProcess.Synchronous, DataLocation.Local].append(
+                    index
+                )
         else:
             raise ValueError(f"data of index {index} is neither a url nor a local file")
     return indexes_upload_process
-
-
-def get_indexes_to_upload_asynchronously(
-    input_type, content_array, video_processing_parameters_array
-):
-    indexes_to_upload_asynchronously = []
-    if input_type == "IMAGE":
-        for index, content in enumerate(content_array):
-            is_tiff = mimetypes.guess_type(content)[0] == "image/tiff"
-            is_large_image = os.path.getsize(content) >= LARGE_IMAGE_THRESHOLD_SIZE
-            if is_tiff or is_large_image:
-                indexes_to_upload_asynchronously.append(index)
-    if input_type in ("FRAME", "VIDEO"):
-        for index, video_processing_parameters in enumerate(video_processing_parameters_array):
-            is_video_into_frames = not video_processing_parameters.get("shouldUseNativeVideo", True)
-            if is_video_into_frames:
-                indexes_to_upload_asynchronously.append(index)
-    return indexes_to_upload_asynchronously
-
-
-# pylint: disable=too-many-arguments
-def fill_arrays_with_default_values_if_none(
-    input_type: str,
-    content_array: Union[List[str], None],
-    external_id_array: Union[List[str], None],
-    is_honeypot_array: Union[List[str], None],
-    status_array: Union[List[str], None],
-    json_content_array: Union[List[List[Union[dict, str]]], None],
-    json_metadata_array: Union[List[dict], None],
-):
-    """
-    Process arguments of the append_many_to_dataset method and return the data payload.
-    """
-    if content_array is None and json_content_array is None:
-        raise ValueError("Variables content_array and json_content_array cannot be both None.")
-    content_array = content_array or [""] * len(json_content_array)
-    nb_data = len(content_array)
-    external_id_array = external_id_array or [uuid4().hex for _ in range(nb_data)]
-    is_honeypot_array = is_honeypot_array or [False] * nb_data
-    status_array = status_array or ["TODO"] * nb_data
-    json_metadata_array = json_metadata_array or [{}] * nb_data
-    if input_type in ("FRAME" or "VIDEO"):
-        default_should_use_native_video = json_content_array is None
-        json_metadata_array = [
-            add_video_parameters(json_metadata, default_should_use_native_video)
-            for json_metadata in json_metadata_array
-        ]
-    json_content_array = json_content_array or [""] * nb_data
-    # formatted_json_content_array = process_json_content(
-    #     input_type, content_array, json_content_array
-    # )
-    properties = {
-        "content_array": content_array,
-        "external_id_array": external_id_array,
-        "is_honeypot_array": is_honeypot_array,
-        "status_array": status_array,
-        "json_content_array": list(map(dumps, json_content_array)),
-        "json_metadata_array": list(map(dumps, json_metadata_array)),
-    }
-
-    return properties
 
 
 def process_update_properties_in_assets_parameters(properties) -> dict:
@@ -375,22 +280,17 @@ def generate_json_metadata_array(as_frames, fps, nb_files, input_type):
     return json_metadata_array
 
 
-def upload_data_via_REST(client: GraphQLClient, path_array: List[str], project_id: str):
+def upload_data_via_REST(signed_urls, path_array: List[str]):
     """Generates signed URLs for files to upload in buckets and upload data on it via REST
     Args:
-        client: a Kili client
-        path_array: a list of file to upload with signed urls
-        project_id: the project id to upload in
+        signed_urls: Bucket signed URLs to upload local files to
+        path_array: a list of file paths to upload
     """
-    variables = {"projectID": project_id, "size": len(path_array)}
-
-    url_response = client.execute(GQL_CREATE_UPLOAD_BUCKET_SIGNED_URLS, variables)
-    urls = url_response["data"]["urls"]
     responses = []
     for index, path in enumerate(path_array):
         content_type = mimetypes.guess_type(path)[0]
         headers = {"Content-type": content_type}
-        url_with_id = urls[index]
+        url_with_id = signed_urls[index]
         url_to_use_for_upload = url_with_id.split("&id=")[0]
         if "blob.core.windows.net" in url_to_use_for_upload:
             headers["x-ms-blob-type"] = "BlockBlob"
@@ -400,3 +300,41 @@ def upload_data_via_REST(client: GraphQLClient, path_array: List[str], project_i
             continue
         responses.append(url_with_id)
     return responses
+
+
+def get_request_payload(
+    project_id,
+    input_type,
+    is_asynchronous_upload_batch,
+    is_local_files_batch,
+    content_array_batch,
+    external_id_array_batch,
+    is_honeypot_array_batch,
+    status_array_batch,
+    json_content_array_batch,
+    json_metadata_array_batch,
+) -> Dict:
+    if is_asynchronous_upload_batch:
+        upload_type = (
+            AsynchronousUploadType.GeoSatellite
+            if input_type == "IMAGE"
+            else AsynchronousUploadType.Video
+        )
+        payload_data = {
+            "contentArray": content_array_batch,
+            "externalIDArray": external_id_array_batch,
+            "jsonMetadataArray": json_metadata_array_batch,
+            "uploadType": upload_type,
+            "isUploadingSignedUrl": is_local_files_batch,
+        }
+    else:
+        payload_data = {
+            "contentArray": content_array_batch,
+            "externalIDArray": external_id_array_batch,
+            "isHoneypotArray": is_honeypot_array_batch,
+            "statusArray": status_array_batch,
+            "jsonContentArray": json_content_array_batch,
+            "jsonMetadataArray": json_metadata_array_batch,
+            "isUploadingSignedUrl": is_local_files_batch,
+        }
+    return {"data": payload_data, "where": {"id": project_id}}

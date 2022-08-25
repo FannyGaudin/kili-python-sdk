@@ -2,17 +2,26 @@
 Asset mutations
 """
 
+import time
+from json import dumps
 from typing import List, Optional, Union
+from uuid import uuid4
 
+from tqdm import tqdm
 from typeguard import typechecked
 
-from ...constants import NO_ACCESS_RIGHT
+from kili.queries.asset.queries import GQL_CREATE_UPLOAD_BUCKET_SIGNED_URLS
+
+from ...constants import NO_ACCESS_RIGHT, THROTTLING_DELAY
 from ...helpers import Compatible, format_result
 from ...orm import Asset
 from ...queries.project import QueriesProject
-from ...utils.pagination import _mutate_from_paginated_call
-from .helpers import (  # get_indexes_to_upload_asynchronously,
-    fill_arrays_with_default_values_if_none,
+from ...utils.pagination import _mutate_from_paginated_call, batch_iterator_builder
+from .helpers import (
+    DataImportProcess,
+    DataLocation,
+    add_video_parameters,
+    get_request_payload,
     process_update_properties_in_assets_parameters,
     split_data_index_by_upload_process,
     upload_data_via_REST,
@@ -101,91 +110,121 @@ class MutationsAsset:
             - For more detailed examples on how to import text assets,
                 see [the recipe](https://github.com/kili-technology/kili-python-sdk/blob/master/recipes/import_text_assets.ipynb).
         """
-        print("append_many_to_dataset")
+        # query input_type
         projects = QueriesProject(self.auth).projects(project_id, disable_tqdm=True)
         assert len(projects) == 1, NO_ACCESS_RIGHT
         input_type = projects[0]["inputType"]
-        parameter_arrays = fill_arrays_with_default_values_if_none(
-            input_type,
-            content_array,
-            external_id_array,
-            is_honeypot_array,
-            status_array,
-            json_content_array,
-            json_metadata_array,
-        )
-        print()
-        video_parameters_array = [
-            json_metadata.get("processingParameters", {}) for json_metadata in json_metadata_array
+
+        # do basic checks:
+        if content_array is None and json_content_array is None:
+            raise ValueError("Variables content_array and json_content_array cannot be both None.")
+        nb_data = len(content_array) if content_array is not None else len(json_content_array)
+        size_of_parameters_array = [
+            len(array)
+            for array in [
+                content_array,
+                json_content_array,
+                external_id_array,
+                is_honeypot_array,
+                status_array,
+                json_metadata_array,
+            ]
+            if array is not None
         ]
-        print("json_metadata_array", json_metadata_array)
-        print("video_parameters_array", video_parameters_array)
-        indexes_upload_process = split_data_index_by_upload_process(
-            input_type, content_array, video_parameters_array
+        if len(set(size_of_parameters_array)) != 1:
+            raise ValueError("All arrays in the parameters should have the same size")
+        default_should_use_native_video = json_content_array is None
+
+        # fill arrays with default values if none
+        content_array = content_array or [""] * nb_data
+        json_content_array = (
+            list(map(dumps, json_content_array))
+            if json_content_array is not None
+            else [""] * nb_data
         )
-        print(indexes_upload_process)
-        for upload_process, index_list in indexes_upload_process.items():
+        external_id_array = external_id_array or [uuid4().hex for _ in range(nb_data)]
+        is_honeypot_array = is_honeypot_array or [False] * nb_data
+        status_array = status_array or ["TODO"] * nb_data
+        json_metadata_array = list(map(dumps, json_metadata_array or [{}] * nb_data))
+
+        # add video processing parameters
+        if input_type in ("FRAME" or "VIDEO"):
+            json_metadata_array = [
+                add_video_parameters(json_metadata, default_should_use_native_video)
+                for json_metadata in json_metadata_array
+            ]
+
+        # divide data by upload process
+        indexes_upload_process = split_data_index_by_upload_process(
+            input_type, content_array, json_metadata_array
+        )
+        for (upload_process, data_location), index_list in indexes_upload_process.items():
+            # pass if no asset to upload with this process
             if len(index_list) == 0:
                 continue
-            if upload_process[0] == "asynchronous":
-                print("Uploading Asset Asynchronously")
-                request = GQL_APPEND_MANY_FRAMES_TO_DATASET
-                if upload_process[1] == "local_file":
-                    signed_url = upload_data_via_REST(self.auth.client, content_array, project_id)
-                    parameter_arrays["content_array"] = signed_url
-                properties_to_batch = {
-                    param_name: [param_array[index] for index in index_list]
-                    for (param_name, param_array) in parameter_arrays.items()
-                }
-                # upload_type = "GEO_SATELLITE" if input_type == "IMAGE" else "VIDEO"
-                # is_uploadind_signed_url = upload_process[1] == "local_file"
 
-                def asynchronous_generate_variables(batch):
-                    payload_data = {
-                        "contentArray": batch["content_array"],
-                        "externalIDArray": batch["external_id_array"],
-                        "jsonMetadataArray": batch["json_metadata_array"],
-                        # "uploadType": upload_type,
-                        # "isUploadingSignedUrl": is_uploadind_signed_url,
-                    }
-                    return {"data": payload_data, "where": {"id": project_id}}
+            is_asynchronous_upload_batch = upload_process == DataImportProcess.Asynchronous
+            is_local_files_batch = data_location == DataLocation.Local
 
-                results = _mutate_from_paginated_call(
-                    self, properties_to_batch, asynchronous_generate_variables, request
-                )
+            request = (
+                GQL_APPEND_MANY_FRAMES_TO_DATASET
+                if is_asynchronous_upload_batch
+                else GQL_APPEND_MANY_TO_DATASET
+            )
+            print(f"Uploading {len(index_list)} assets from {data_location.lower()} files...")
+            with tqdm(total=len(index_list)) as pbar:
+                for batch_index in list(batch_iterator_builder(index_list, batch_size=10)):
+                    content_array_batch = list(map(content_array.__getitem__, batch_index))
+                    external_id_array_batch = list(map(external_id_array.__getitem__, batch_index))
+                    is_honeypot_array_batch = list(map(is_honeypot_array.__getitem__, batch_index))
+                    status_array_batch = list(map(status_array.__getitem__, batch_index))
+                    json_content_array_batch = list(
+                        map(json_content_array.__getitem__, batch_index)
+                    )
+                    json_metadata_array_batch = list(
+                        map(json_metadata_array.__getitem__, batch_index)
+                    )
 
-            if upload_process[0] == "synchronous":
-                print("Uploading Asset Synchronously")
-                request = GQL_APPEND_MANY_TO_DATASET
-                if upload_process[1] == "local_file":
-                    signed_url = upload_data_via_REST(self.auth.client, content_array, project_id)
-                    parameter_arrays["content_array"] = signed_url
-                properties_to_batch = {
-                    param_name: [param_array[index] for index in index_list]
-                    for (param_name, param_array) in parameter_arrays.items()
-                }
-                # is_uploadind_signed_url = upload_process[1] == "local_file"
+                    # upload local files
+                    if is_local_files_batch:
+                        create_signed_urls_payload = {
+                            "projectID": project_id,
+                            "size": len(batch_index),
+                        }
+                        mutation_start = time.time()
+                        urls_response = self.auth.client.execute(
+                            GQL_CREATE_UPLOAD_BUCKET_SIGNED_URLS, create_signed_urls_payload
+                        )
+                        mutation_time = time.time() - mutation_start
+                        if mutation_time < THROTTLING_DELAY:
+                            time.sleep(THROTTLING_DELAY - mutation_time)
+                        signed_urls = urls_response["data"]["urls"]
+                        urls_with_uploaded_data = upload_data_via_REST(
+                            signed_urls, content_array_batch
+                        )
+                        content_array_batch = urls_with_uploaded_data
+                    request_payload = get_request_payload(
+                        project_id,
+                        input_type,
+                        is_asynchronous_upload_batch,
+                        is_local_files_batch,
+                        content_array_batch,
+                        external_id_array_batch,
+                        is_honeypot_array_batch,
+                        status_array_batch,
+                        json_content_array_batch,
+                        json_metadata_array_batch,
+                    )
+                    # call graphQL
+                    mutation_start = time.time()
+                    result = self.auth.client.execute(request, request_payload)
+                    mutation_time = time.time() - mutation_start
+                    if mutation_time < THROTTLING_DELAY:
+                        time.sleep(THROTTLING_DELAY - mutation_time)
 
-                def synchronous_generate_variables(batch):
-                    payload_data = {
-                        "contentArray": batch["content_array"],
-                        "externalIDArray": batch["external_id_array"],
-                        "isHoneypotArray": batch["is_honeypot_array"],
-                        "statusArray": batch["status_array"],
-                        "jsonContentArray": batch["json_content_array"],
-                        "jsonMetadataArray": batch["json_metadata_array"],
-                        # "isUploadingSignedUrl": is_uploadind_signed_url,
-                    }
-                    return {"data": payload_data, "where": {"id": project_id}}
+                    pbar.update(len(batch_index))
 
-                results = _mutate_from_paginated_call(
-                    self,
-                    properties_to_batch,
-                    synchronous_generate_variables,
-                    request,
-                )
-
-        return format_result("data", results[0], Asset)
+        return format_result("data", result, Asset)
 
     @Compatible(["v2"])
     @typechecked
@@ -274,7 +313,7 @@ class MutationsAsset:
         }
         properties_to_batch = process_update_properties_in_assets_parameters(parameters)
 
-        def generate_variables(batch):
+        def call_payload_generator(batch):
             data = {
                 "externalId": batch["external_ids"],
                 "priority": batch["priorities"],
@@ -298,7 +337,7 @@ class MutationsAsset:
         results = _mutate_from_paginated_call(
             self,
             properties_to_batch,
-            generate_variables,
+            call_payload_generator,
             GQL_UPDATE_PROPERTIES_IN_ASSETS,
         )
         formated_results = [format_result("data", result, Asset) for result in results]
@@ -318,11 +357,11 @@ class MutationsAsset:
         """
         properties_to_batch = {"asset_ids": asset_ids}
 
-        def generate_variables(batch):
+        def call_payload_generator(batch):
             return {"where": {"idIn": batch["asset_ids"]}}
 
         results = _mutate_from_paginated_call(
-            self, properties_to_batch, generate_variables, GQL_DELETE_MANY_FROM_DATASET
+            self, properties_to_batch, call_payload_generator, GQL_DELETE_MANY_FROM_DATASET
         )
         return format_result("data", results[0], Asset)
 
@@ -350,13 +389,13 @@ class MutationsAsset:
         """
         properties_to_batch = {"asset_ids": asset_ids}
 
-        def generate_variables(batch):
+        def call_payload_generator(batch):
             return {"where": {"idIn": batch["asset_ids"]}}
 
         results = _mutate_from_paginated_call(
             self,
             properties_to_batch,
-            generate_variables,
+            call_payload_generator,
             GQL_ADD_ALL_LABELED_ASSETS_TO_REVIEW,
         )
         return format_result("data", results[0])
@@ -382,10 +421,10 @@ class MutationsAsset:
         """
         properties_to_batch = {"asset_ids": asset_ids}
 
-        def generate_variables(batch):
+        def call_payload_generator(batch):
             return {"where": {"idIn": batch["asset_ids"]}}
 
         results = _mutate_from_paginated_call(
-            self, properties_to_batch, generate_variables, GQL_SEND_BACK_ASSETS_TO_QUEUE
+            self, properties_to_batch, call_payload_generator, GQL_SEND_BACK_ASSETS_TO_QUEUE
         )
         return format_result("data", results[0])

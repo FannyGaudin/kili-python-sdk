@@ -72,7 +72,7 @@ class MutationsLabel:
             "json_response_array": json_response_array,
         }
 
-        def generate_variables(batch):
+        def call_payload_generator(batch):
             return {
                 "data": {
                     "modelNameArray": batch["model_name_array"],
@@ -85,7 +85,7 @@ class MutationsLabel:
             }
 
         results = _mutate_from_paginated_call(
-            self, properties_to_batch, generate_variables, GQL_CREATE_PREDICTIONS
+            self, properties_to_batch, call_payload_generator, GQL_CREATE_PREDICTIONS
         )
         return format_result("data", results[0], Label)
 
