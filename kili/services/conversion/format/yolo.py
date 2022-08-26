@@ -5,22 +5,26 @@ Functions to export a project to YOLOv4 or v5 format
 import csv
 import json
 import logging
+
+# import csv
+# import json
+# import logging
 import os
 import shutil
 from tempfile import TemporaryDirectory
-from typing import Dict, List, cast
+
+# import shutil
+# from tempfile import TemporaryDirectory
+from typing import Dict
 
 import requests
 
-# from app.bucket import get_bucket_client, get_bucket_type, upload_file
-from kili.client import Kili
+# import requests
 from kili.orm import AnnotationFormat, JobMLTask, JobTool
-from kili.services.conversion.format.base import (
-    BaseFormatter,
-    ExportParams,
-    RequestParams,
-)
-from kili.services.conversion.logger import get_logger
+
+# from app.bucket import get_bucket_client, get_bucket_type, upload_file
+# from app.connect import sign_in
+from kili.services.conversion.format.base import BaseFormatter, ExportParams
 from kili.services.conversion.tools import (
     create_readme_kili_file,
     fetch_assets,
@@ -40,12 +44,12 @@ class YoloFormatter(BaseFormatter):
     """
 
     @staticmethod
-    def export_project(kili: Kili, export_params: ExportParams, request_params: RequestParams):
+    def export_project(kili, export_params: ExportParams) -> str:
         """
         Export a project to YOLO v4 or v5 format
         """
         assets = fetch_assets(
-            kili=kili,
+            kili,
             project_id=export_params.project_id,
             assets_ids=export_params.assets_ids,
             export_type=export_params.export_type,
@@ -59,7 +63,7 @@ class YoloFormatter(BaseFormatter):
                 export_params.project_id,
                 export_params.project_name,
                 export_params.label_format,
-                request_params.user_email,
+                logging,
             )
         return _process_and_save_yolo_pytorch_export(
             kili,
@@ -68,7 +72,7 @@ class YoloFormatter(BaseFormatter):
             export_params.project_id,
             export_params.project_name,
             export_params.label_format,
-            request_params.user_email,
+            logging,
         )
 
 
@@ -117,24 +121,25 @@ def get_category_full_name(job_id, category_name):
 
 
 def _process_and_save_yolo_pytorch_export_splitted(
-    kili: Kili,
+    kili,
     export_type: ExportType,
     assets,
     project_id: str,
     project_name: str,
     label_format: AnnotationFormat,
-    user_email: str,
+    logger,
 ):
     # pylint: disable=too-many-locals, too-many-arguments
     """
     Save the assets and annotations to a zip file in the Yolo format.
     Split each job in a different folder with its own class file.
     """
-    logger = get_logger(user_email)
+    _ = project_name
     logger.info("Exporting yolo format splitted")
-    json_interface = cast(
-        List[Dict], kili.projects(project_id=project_id, fields=["jsonInterface"])
-    )[0]["jsonInterface"]
+
+    json_interface = kili.projects(project_id=project_id, fields=["jsonInterface"])[0][
+        "jsonInterface"
+    ]
     categories_by_job: Dict[str, Dict[str, JobCategory]] = {}
     ml_task = JobMLTask.ObjectDetection
     tool = JobTool.Rectangle
@@ -147,8 +152,8 @@ def _process_and_save_yolo_pytorch_export_splitted(
                 category_name=category, id=cat_id, job_id=job_id
             )
         categories_by_job[job_id] = categories
-    base_name = get_export_name(project_name)
-    destination_name = f"{base_name}.zip"
+    # base_name = get_export_name(project_name)
+    # destination_name = f'{base_name}.zip'
     with TemporaryDirectory() as folder:
         images_folder = os.path.join(folder, project_id, "images")
         os.makedirs(images_folder)
@@ -183,7 +188,7 @@ def _process_and_save_yolo_pytorch_export_splitted(
                     writer = csv.writer(file)
                     writer.writerow(remote_content_header)
                     writer.writerows(remote_content)
-        create_readme_kili_file(folder, project_id, label_format, export_type)
+        create_readme_kili_file(kili, folder, project_id, label_format, export_type)
         path_folder = os.path.join(folder, project_id)
         shutil.make_archive(path_folder, "zip", path_folder)
 
@@ -191,19 +196,18 @@ def _process_and_save_yolo_pytorch_export_splitted(
 
 
 def _process_and_save_yolo_pytorch_export(
-    kili: Kili,
+    kili,
     export_type: ExportType,
     assets,
     project_id: str,
     project_name: str,
     label_format: AnnotationFormat,
-    user_email: str,
+    logger,
 ):
     # pylint: disable=too-many-locals, too-many-arguments
     """
     Save the assets and annotations to a zip file in the Yolo format.
     """
-    logger = get_logger(user_email)
     logger.info("Exporting yolo format merged")
 
     json_interface = kili.projects(project_id=project_id, fields=["jsonInterface"])[0][
@@ -275,8 +279,8 @@ def _process_asset_for_job(
     is_frame = False
     asset_remote_content = []
     job_ids = set(map(lambda job_category: job_category.job_id, category_ids.values()))
-    leading_zeros = 0
 
+    leading_zeros = 0
     if "jsonResponse" in asset["latestLabel"]:
         number_of_frames = len(asset["latestLabel"]["jsonResponse"])
         leading_zeros = len(str(number_of_frames))
