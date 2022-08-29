@@ -18,8 +18,6 @@ from tempfile import TemporaryDirectory
 from typing import Dict
 
 import requests
-
-# import requests
 from kili.orm import AnnotationFormat, JobMLTask, JobTool
 
 # from app.bucket import get_bucket_client, get_bucket_type, upload_file

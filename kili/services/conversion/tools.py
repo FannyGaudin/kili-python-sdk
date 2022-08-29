@@ -8,7 +8,7 @@ from typing import Iterator
 
 from kili.orm import AnnotationFormat
 
-DEFAULT_FIELDS = [
+DEFAULT_FIELDS = [  # TODO: check if this is still relevant
     "id",
     "content",
     "externalId",
@@ -22,7 +22,6 @@ DEFAULT_FIELDS = [
     "labels.isLatestLabelForUser",
     "labels.labelType",
     "labels.modelName",
-    "labels.skipped",
 ]
 LATEST_LABEL_FIELDS = [
     "id",
@@ -39,7 +38,6 @@ LATEST_LABEL_FIELDS = [
     "latestLabel.isLatestLabelForUser",
     "latestLabel.labelType",
     "latestLabel.modelName",
-    "latestLabel.skipped",
 ]
 KILI_FILES = (
     f'{os.getenv("ENDPOINT__ROUTER")}'

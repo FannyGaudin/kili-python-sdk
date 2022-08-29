@@ -1,6 +1,7 @@
 import zipfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
+from logging import getLogger
 
 from typing_extensions import Literal
 
@@ -29,8 +30,9 @@ def convert_assets(
     label_format: LabelFormat,
     split_option: SplitOption,
     output_file: str,
-) -> str:
+) -> None:
     """ """
+    getLogger("conversion").info(f"Exporting to {label_format} format")
     export_params = ExportParams(
         assets_ids=asset_ids,
         project_id=project_id,
@@ -44,7 +46,7 @@ def convert_assets(
     # if label_format in [LabelFormat.RAW, LabelFormat.SIMPLE]:
     # return KiliFormatter.export_project(export_params, request_params)
     if label_format in [LabelFormat.YOLO_V4, LabelFormat.YOLO_V5]:
-        return YoloFormatter.export_project(kili, export_params)
+        YoloFormatter.export_project(kili, export_params)
     # if label_format in [LabelFormat.PASCAL_VOC]:
     #     return VocFormatter.export_project(export_params, request_params)
     # raise Exception('Case not handled')

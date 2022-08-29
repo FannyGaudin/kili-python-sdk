@@ -1,18 +1,21 @@
 """Project module."""
-
-from tkinter.font import NORMAL
 from typing import Dict, List, Optional, cast
 
 from typing_extensions import Literal, NewType
 
 from kili.services import convert_assets
-from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
+from kili.services.conversion.typing import LabelFormat, SplitOption as SplitOptionLegacy, ExportType as ExportTypeLegacy
 
-Format = Literal["coco", "voc", "yolo"]
-InputType = Literal["TEXT", "IMAGE"]
+Format = Literal["coco", "voc", "yolo_v4", "yolo_v5"]
+InputType = Literal["text", "image"]
+ExportType = Literal["latest", "normal"]
 AssetId = NewType("AssetId", str)
 ProjectId = NewType("ProjectId", str)
+SplitOption = Literal["split", "merged"]
 
+export_type_mapping: Dict[ExportType, ExportTypeLegacy] = {"normal": ExportTypeLegacy.NORMAL, "latest": ExportTypeLegacy.LATEST}
+split_mapping: Dict[SplitOption, SplitOptionLegacy] = {"merged": SplitOptionLegacy.MERGED_FOLDER, "split": SplitOptionLegacy.SPLIT_FOLDER}
+format_mapping: Dict[Format, LabelFormat] = {"yolo_v4": LabelFormat.YOLO_V4, "yolo_v5": LabelFormat.YOLO_V5}
 
 class Project:  # pylint: disable=too-few-public-methods
     """
@@ -31,18 +34,16 @@ class Project:  # pylint: disable=too-few-public-methods
         self.client = client
 
     def export(
-        self, path_output: str, format: Format, asset_ids: Optional[List[AssetId]] = None
+        self, path_output: str, output_format: Format, asset_ids: Optional[List[AssetId]] = None, export_type: ExportType = "normal", split_option: SplitOption = "split"
     ) -> None:
-
-        if format == "yolo":
-
+        if output_format in ["yolo_v4", "yolo_v5"]:
             convert_assets(
                 self.client,
                 asset_ids=cast(Optional[List[str]], asset_ids),
                 project_id=self.project_id,
                 project_title=self.title,
-                export_type=ExportType.NORMAL,
-                label_format=LabelFormat.YOLO_V4,
-                split_option=SplitOption.SPLIT_FOLDER,
+                export_type=export_type_mapping[export_type],
+                label_format=format_mapping[output_format],
+                split_option=split_mapping[split_option],
                 output_file=path_output,
             )
