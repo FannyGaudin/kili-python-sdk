@@ -1,3 +1,4 @@
+import glob
 import os
 import zipfile
 from pathlib import Path
@@ -89,8 +90,8 @@ class FakeKili(object):
         else:
             return []
 
-    def projects(self, project_id: str, fields: List[str]):
-        _ = fields
+    def projects(self, project_id: str, fields: List[str], disable_tqdm: bool = False):
+        _ = fields, disable_tqdm
         if project_id == "1bb":
             job_payload = {
                 "mlTask": "OBJECT_DETECTION",
@@ -129,6 +130,16 @@ class FakeKili(object):
         else:
             return []
 
+
+def get_file_tree(folder: str):
+    dct = {}
+    filepaths = [f.replace(os.path.join(folder, ""), "") for f in glob.iglob(folder + '**/**', recursive=True)]
+    for f in filepaths:
+        p = dct
+        for x in f.split('/'):
+            if len(x):
+                p = p.setdefault(x, {})
+    return dct
 
 class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
@@ -228,11 +239,11 @@ class YoloTestCase(TestCase):
         path_zipfile.parent.mkdir(parents=True, exist_ok=True)
 
         fake_kili = FakeKili()
-        result = convert_assets(
+        convert_assets(
             fake_kili,
             asset_ids=[],
             project_id="1bb",
-            project_name="test project",
+            project_title="test project",
             export_type=ExportType.LATEST,
             label_format=LabelFormat.YOLO_V5,
             split_option=SplitOption.SPLIT_FOLDER,
@@ -243,5 +254,38 @@ class YoloTestCase(TestCase):
         Path(path_extract).mkdir(parents=True, exist_ok=True)
         with ZipFile(path_zipfile, "r") as z:
             z.extractall(path_extract)
-        self.assertEqual(1, len(os.listdir(path_extract)))
-        # self.assertAlmostEqual(converted_asset)
+
+        file_tree_result = get_file_tree(path_extract)
+
+        # validate file tree
+        file_tree_expected = {
+          "images": {
+            "remote_assets.csv": {}
+          },
+          "JOB_0": {
+            "labels": {
+              "car_1.txt": {},
+            },
+            "data.yaml": {}
+          },
+          "JOB_1": {
+            "labels": {},
+            "data.yaml": {}
+          },
+          "JOB_2":  {
+            "labels": {},
+            "data.yaml": {}
+          },
+          "JOB_3":  {
+            "labels": {},
+            "data.yaml": {}
+          },
+          "README.kili.txt": {}
+        }
+
+        assert(file_tree_result == file_tree_expected)
+
+        # validate contents
+
+
+

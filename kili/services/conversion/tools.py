@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Iterator
 
 from kili.orm import AnnotationFormat
-from kili.services.conversion.connect import sign_in
 
 DEFAULT_FIELDS = [
     "id",
@@ -82,7 +81,7 @@ def create_readme_kili_file(kili, folder, project_id, label_format, export_type)
         fout.write(f"- Exported labels: {export_type}\n".encode())
 
 
-def fetch_assets(kili, project_id, assets_ids, export_type, label_type_in=None):
+def fetch_assets(kili, project_id, asset_ids, export_type, label_type_in=None):
     """
     Fetches assets where ID are in asset_ids if the list has more than one element,
     else all the assets of the project
@@ -96,9 +95,9 @@ def fetch_assets(kili, project_id, assets_ids, export_type, label_type_in=None):
     """
     fields = get_fields_to_fetch(export_type)
     assets = None
-    if len(assets_ids) > 0:
+    if asset_ids is not None and len(asset_ids) > 0:
         assets = kili.assets(
-            asset_id_in=assets_ids,
+            asset_id_in=asset_ids,
             project_id=project_id,
             fields=fields,
             label_type_in=label_type_in,

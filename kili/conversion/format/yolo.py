@@ -47,7 +47,7 @@ class YoloFormatter(BaseFormatter):
         assets = fetch_assets(
             kili=kili,
             project_id=export_params.project_id,
-            assets_ids=export_params.assets_ids,
+            asset_ids=export_params.assets_ids,
             export_type=export_params.export_type,
             label_type_in=["DEFAULT", "REVIEW"],
         )

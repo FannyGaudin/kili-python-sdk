@@ -3,7 +3,7 @@ Base class for all formatters
 """
 
 from abc import ABC, abstractmethod
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Optional
 
 from kili.orm import AnnotationFormat
 from kili.services.conversion.typing import ExportType, SplitOption
@@ -14,12 +14,13 @@ class ExportParams(NamedTuple):
     Contains all parameters that change the result of the export
     """
 
-    assets_ids: List[str]
+    assets_ids: Optional[List[str]]
     export_type: ExportType
     project_id: str
     project_name: str
     label_format: AnnotationFormat
     split_option: SplitOption
+    output_file: str
 
 
 class RequestParams(NamedTuple):
