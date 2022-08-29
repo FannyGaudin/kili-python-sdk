@@ -5,29 +5,19 @@ Functions to export a project to YOLOv4 or v5 format
 import csv
 import json
 import logging
-
-# import csv
-# import json
-# import logging
 import os
 import shutil
 from tempfile import TemporaryDirectory
-
-# import shutil
-# from tempfile import TemporaryDirectory
 from typing import Dict
 
 import requests
-from kili.orm import AnnotationFormat, JobMLTask, JobTool
 
-# from app.bucket import get_bucket_client, get_bucket_type, upload_file
-# from app.connect import sign_in
+from kili.orm import AnnotationFormat, JobMLTask, JobTool
 from kili.services.conversion.format.base import BaseFormatter, ExportParams
 from kili.services.conversion.tools import (
     create_readme_kili_file,
     fetch_assets,
     get_endpoint_router_from_services,
-    get_export_name,
     is_asset_served_by_kili,
 )
 from kili.services.conversion.typing import ExportType, JobCategory, SplitOption

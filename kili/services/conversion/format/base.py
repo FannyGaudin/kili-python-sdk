@@ -40,7 +40,7 @@ class BaseFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def export_project(kili: "Kili", export_params: ExportParams) -> str:
+    def export_project(kili, export_params: ExportParams) -> str:
         """
         Export a project to a json.
         Return the name of the exported archive file in the bucket.

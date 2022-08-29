@@ -1,24 +1,9 @@
-import zipfile
-from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
 from logging import getLogger
-
-from typing_extensions import Literal
+from typing import List, Optional
 
 from kili.services.conversion.format.base import ExportParams
 from kili.services.conversion.format.yolo import YoloFormatter
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
-
-# OutputFormat = Literal['RAW', 'SIMPLE', 'PASCAL_VOC', 'YOLO_V4', 'YOLO_V5']
-# ExportType = Literal["LATEST", "NORMAL"]
-# SplitOption = Literal['MERGED_FOLDER', 'SPLIT_FOLDER']
-
-# assets_ids=payload.assets_ids,
-# project_id=payload.project_id,
-# project_name=payload.project_name,
-# export_type=payload.export_type,
-# label_format=label_format.lower(),
-# split_option=payload.split_option,
 
 
 def convert_assets(
