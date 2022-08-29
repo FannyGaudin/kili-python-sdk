@@ -1,9 +1,10 @@
 """Project module."""
 
 from tkinter.font import NORMAL
-from typing import List, Optional, cast, Dict
+from typing import Dict, List, Optional, cast
 
 from typing_extensions import Literal, NewType
+
 from kili.services import convert_assets
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
@@ -21,7 +22,9 @@ class Project:  # pylint: disable=too-few-public-methods
     It also allows queries from this project such as its assets, labels etc.
     """
 
-    def __init__(self, project_id: ProjectId, input_type: InputType, title: str, client: "kili.client.Kili"):
+    def __init__(
+        self, project_id: ProjectId, input_type: InputType, title: str, client: "kili.client.Kili"
+    ):
         self.project_id = project_id
         self.title = title
         self.input_type = input_type

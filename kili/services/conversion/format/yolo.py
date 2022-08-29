@@ -140,9 +140,9 @@ def _process_and_save_yolo_pytorch_export_split(
     logger.info("Exporting yolo format splitted")
     _ = project_name
 
-    json_interface = kili.projects(project_id=project_id, fields=["jsonInterface"], disable_tqdm=True)[0][
-        "jsonInterface"
-    ]
+    json_interface = kili.projects(
+        project_id=project_id, fields=["jsonInterface"], disable_tqdm=True
+    )[0]["jsonInterface"]
     categories_by_job: Dict[str, Dict[str, JobCategory]] = {}
     ml_task = JobMLTask.ObjectDetection
     tool = JobTool.Rectangle

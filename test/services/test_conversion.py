@@ -133,13 +133,17 @@ class FakeKili(object):
 
 def get_file_tree(folder: str):
     dct = {}
-    filepaths = [f.replace(os.path.join(folder, ""), "") for f in glob.iglob(folder + '**/**', recursive=True)]
+    filepaths = [
+        f.replace(os.path.join(folder, ""), "")
+        for f in glob.iglob(folder + "**/**", recursive=True)
+    ]
     for f in filepaths:
         p = dct
-        for x in f.split('/'):
+        for x in f.split("/"):
             if len(x):
                 p = p.setdefault(x, {})
     return dct
+
 
 class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
@@ -259,33 +263,19 @@ class YoloTestCase(TestCase):
 
         # validate file tree
         file_tree_expected = {
-          "images": {
-            "remote_assets.csv": {}
-          },
-          "JOB_0": {
-            "labels": {
-              "car_1.txt": {},
+            "images": {"remote_assets.csv": {}},
+            "JOB_0": {
+                "labels": {
+                    "car_1.txt": {},
+                },
+                "data.yaml": {},
             },
-            "data.yaml": {}
-          },
-          "JOB_1": {
-            "labels": {},
-            "data.yaml": {}
-          },
-          "JOB_2":  {
-            "labels": {},
-            "data.yaml": {}
-          },
-          "JOB_3":  {
-            "labels": {},
-            "data.yaml": {}
-          },
-          "README.kili.txt": {}
+            "JOB_1": {"labels": {}, "data.yaml": {}},
+            "JOB_2": {"labels": {}, "data.yaml": {}},
+            "JOB_3": {"labels": {}, "data.yaml": {}},
+            "README.kili.txt": {},
         }
 
-        assert(file_tree_result == file_tree_expected)
+        assert file_tree_result == file_tree_expected
 
         # validate contents
-
-
-
