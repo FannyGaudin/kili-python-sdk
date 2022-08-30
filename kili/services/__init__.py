@@ -1,3 +1,6 @@
+"""
+Python SDK service layer
+"""
 from logging import getLogger
 from typing import List, Optional
 
@@ -6,7 +9,7 @@ from kili.services.conversion.format.yolo import YoloFormatter
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
 
-def convert_assets(
+def convert_assets(  # pylint: disable=too-many-arguments
     kili,
     asset_ids: Optional[List[str]],
     project_id: str,
@@ -16,8 +19,10 @@ def convert_assets(
     split_option: SplitOption,
     output_file: str,
 ) -> None:
-    """ """
-    getLogger("conversion").info(f"Exporting to {label_format} format")
+    """
+    Convert the assets into the require formats, and save it into a file archive.
+    """
+    getLogger("conversion").info("Exporting to %s format", label_format)
     export_params = ExportParams(
         assets_ids=asset_ids,
         project_id=project_id,

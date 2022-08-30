@@ -37,13 +37,15 @@ class Project:  # pylint: disable=too-few-public-methods
     It also allows queries from this project such as its assets, labels etc.
     """
 
-    def __init__(self, project_id: ProjectId, input_type: InputType, title: str, client):
+    def __init__(  # pylint: disable=too-many-arguments
+        self, project_id: ProjectId, input_type: InputType, title: str, client
+    ):
         self.project_id = project_id
         self.title = title
         self.input_type = input_type
         self.client = client
 
-    def export(
+    def export(  # pylint: disable=too-many-arguments
         self,
         path_output: str,
         output_format: Format,
@@ -51,6 +53,9 @@ class Project:  # pylint: disable=too-few-public-methods
         export_type: ExportType = "normal",
         split_option: SplitOption = "split",
     ) -> None:
+        """
+        Export the project assets with the requested format into the requested output path
+        """
         if output_format in ["yolo_v4", "yolo_v5"]:
             convert_assets(
                 self.client,
