@@ -237,45 +237,78 @@ class YoloTestCase(TestCase):
                 with open("./test/services/expected/data.yaml", "rb") as expected_file:
                     self.assertEqual(expected_file.read(), created_file.read())
 
-    def test_conversion_service(self):
+    def test_conversion_service_split(self):
+        with TemporaryDirectory() as export_folder:
+            with TemporaryDirectory() as extract_folder:
 
-        path_zipfile = Path("/tmp/python-sdk/conversion/export.zip")
-        path_zipfile.parent.mkdir(parents=True, exist_ok=True)
+                path_zipfile = Path(export_folder) / "export.zip"
+                path_zipfile.parent.mkdir(parents=True, exist_ok=True)
 
-        fake_kili = FakeKili()
-        convert_assets(
-            fake_kili,
-            asset_ids=[],
-            project_id="1bb",
-            project_title="test project",
-            export_type=ExportType.LATEST,
-            label_format=LabelFormat.YOLO_V5,
-            split_option=SplitOption.SPLIT_FOLDER,
-            output_file=str(path_zipfile),
-        )
+                fake_kili = FakeKili()
+                convert_assets(
+                    fake_kili,
+                    asset_ids=[],
+                    project_id="1bb",
+                    project_title="test project",
+                    export_type=ExportType.LATEST,
+                    label_format=LabelFormat.YOLO_V5,
+                    split_option=SplitOption.SPLIT_FOLDER,
+                    output_file=str(path_zipfile),
+                )
 
-        path_extract = "/tmp/python-sdk/conversion/extract/"
-        Path(path_extract).mkdir(parents=True, exist_ok=True)
-        with ZipFile(path_zipfile, "r") as z:
-            z.extractall(path_extract)
+                Path(extract_folder).mkdir(parents=True, exist_ok=True)
+                with ZipFile(path_zipfile, "r") as z:
+                    z.extractall(extract_folder)
 
-        file_tree_result = get_file_tree(path_extract)
+                file_tree_result = get_file_tree(extract_folder)
 
-        # validate file tree
-        file_tree_expected = {
-            "images": {"remote_assets.csv": {}},
-            "JOB_0": {
-                "labels": {
-                    "car_1.txt": {},
-                },
-                "data.yaml": {},
-            },
-            "JOB_1": {"labels": {}, "data.yaml": {}},
-            "JOB_2": {"labels": {}, "data.yaml": {}},
-            "JOB_3": {"labels": {}, "data.yaml": {}},
-            "README.kili.txt": {},
-        }
+                file_tree_expected = {
+                    "images": {"remote_assets.csv": {}},
+                    "JOB_0": {
+                        "labels": {
+                            "car_1.txt": {},
+                        },
+                        "data.yaml": {},
+                    },
+                    "JOB_1": {"labels": {}, "data.yaml": {}},
+                    "JOB_2": {"labels": {}, "data.yaml": {}},
+                    "JOB_3": {"labels": {}, "data.yaml": {}},
+                    "README.kili.txt": {},
+                }
 
-        assert file_tree_result == file_tree_expected
+                assert file_tree_result == file_tree_expected
 
-        # validate contents
+    def test_conversion_service_nonsplit(self):
+
+        with TemporaryDirectory() as export_folder:
+            with TemporaryDirectory() as extract_folder:
+
+                path_zipfile = Path(export_folder) / "export.zip"
+                path_zipfile.parent.mkdir(parents=True, exist_ok=True)
+
+                fake_kili = FakeKili()
+                convert_assets(
+                    fake_kili,
+                    asset_ids=[],
+                    project_id="1bb",
+                    project_title="test project",
+                    export_type=ExportType.LATEST,
+                    label_format=LabelFormat.YOLO_V5,
+                    split_option=SplitOption.MERGED_FOLDER,
+                    output_file=str(path_zipfile),
+                )
+
+                Path(extract_folder).mkdir(parents=True, exist_ok=True)
+                with ZipFile(path_zipfile, "r") as z:
+                    z.extractall(extract_folder)
+
+                file_tree_result = get_file_tree(extract_folder)
+
+                file_tree_expected = {
+                    "images": {"remote_assets.csv": {}},
+                    "labels": {"car_1.txt": {}},
+                    "data.yaml": {},
+                    "README.kili.txt": {},
+                }
+
+                assert file_tree_result == file_tree_expected
