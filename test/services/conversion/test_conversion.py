@@ -7,7 +7,7 @@ from unittest import TestCase
 from zipfile import ZipFile
 
 from kili.orm import AnnotationFormat
-from kili.services import convert_assets
+from kili.services import export_assets
 from kili.services.conversion.format.yolo import (
     _convert_from_kili_to_yolo_format,
     _process_asset_for_job,
@@ -244,7 +244,7 @@ class YoloTestCase(TestCase):
                 path_zipfile.parent.mkdir(parents=True, exist_ok=True)
 
                 fake_kili = FakeKili()
-                convert_assets(
+                export_assets(
                     fake_kili,
                     asset_ids=[],
                     project_id="1bb",
@@ -286,7 +286,7 @@ class YoloTestCase(TestCase):
                 path_zipfile.parent.mkdir(parents=True, exist_ok=True)
 
                 fake_kili = FakeKili()
-                convert_assets(
+                export_assets(
                     fake_kili,
                     asset_ids=[],
                     project_id="1bb",

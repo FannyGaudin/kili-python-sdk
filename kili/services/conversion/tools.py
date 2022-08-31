@@ -168,14 +168,16 @@ def is_asset_served_by_kili(url):
     return url.startswith(KILI_FILES)
 
 
-def get_endpoint_router_from_services():
+def get_endpoint_router_from_services() -> str:
     """
     Return the enpoint of the router which is changed for development env
     since most devs use export inside docker and router outside
     """
-    endpoint = os.getenv("ENDPOINT__ROUTER_URL_FROM_SERVICE")
+    endpoint_router = os.getenv("ENDPOINT__ROUTER_URL_FROM_SERVICE")
+    if endpoint_router is None:
+        raise ValueError("Missing ENDPOINT__ROUTER_URL_FROM_SERVICE environment variable")
 
     if os.getenv("ENVIRONMENT") == "development":
-        endpoint = endpoint.replace("localhost", "host.docker.internal")
+        endpoint_router = endpoint_router.replace("localhost", "host.docker.internal")
 
-    return endpoint
+    return endpoint_router

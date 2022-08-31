@@ -9,7 +9,7 @@ from kili.services.conversion.format.yolo import YoloFormatter
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
 
-def convert_assets(  # pylint: disable=too-many-arguments
+def export_assets(  # pylint: disable=too-many-arguments
     kili,
     asset_ids: Optional[List[str]],
     project_id: str,
@@ -20,7 +20,7 @@ def convert_assets(  # pylint: disable=too-many-arguments
     output_file: str,
 ) -> None:
     """
-    Convert the assets into the require formats, and save it into a file archive.
+    Export the selected assets into the required format, and save it into a file archive.
     """
     getLogger("conversion").info("Exporting to %s format", label_format)
     export_params = ExportParams(

@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, cast
 
 from typing_extensions import Literal, NewType
 
-from kili.services import convert_assets
+from kili.services import export_assets
 from kili.services.conversion.typing import ExportType as ExportTypeLegacy
 from kili.services.conversion.typing import LabelFormat
 from kili.services.conversion.typing import SplitOption as SplitOptionLegacy
@@ -57,7 +57,7 @@ class Project:  # pylint: disable=too-few-public-methods
         Export the project assets with the requested format into the requested output path
         """
         if output_format in ["yolo_v4", "yolo_v5"]:
-            convert_assets(
+            export_assets(
                 self.client,
                 asset_ids=cast(Optional[List[str]], asset_ids),
                 project_id=self.project_id,
@@ -67,3 +67,5 @@ class Project:  # pylint: disable=too-few-public-methods
                 split_option=split_mapping[split_option],
                 output_file=path_output,
             )
+        else:
+            raise NotImplementedError()

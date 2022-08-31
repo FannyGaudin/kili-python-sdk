@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+from typing import Dict, List
 
 import ffmpeg
 import requests
@@ -87,9 +88,10 @@ def cut_video(asset, frames, images_folder, orig_filename, leading_zeros):
                     )
 
 
-def get_content_frames(asset, auth_header):
+def get_content_frames_paths(asset: Dict, auth_header: Dict) -> List[str]:
     """
-    Get list of links to frames from the file located at asset[jsonContent]
+    Get list of links to frames from the file located at asset[jsonContent]. Returns an empty list
+    if `content` in the asset exists.
     """
     content_frames = []
 
