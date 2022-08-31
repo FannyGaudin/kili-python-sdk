@@ -349,12 +349,12 @@ class LabelFrames:
         """
         frames = {}
         number_of_frames = 0
-        is_frame = False
+        is_frame_group = False
         if "jsonResponse" in asset["latestLabel"]:
             number_of_frames = len(asset["latestLabel"]["jsonResponse"])
             for idx in range(number_of_frames):
                 if str(idx) in asset["latestLabel"]["jsonResponse"]:
-                    is_frame = True
+                    is_frame_group = True
                     frame_asset = asset["latestLabel"]["jsonResponse"][str(idx)]
                     for job_id in job_ids:
                         if (
@@ -367,7 +367,7 @@ class LabelFrames:
 
         if not frames:
             frames[-1] = asset
-        return LabelFrames(frames, number_of_frames, is_frame, asset["externalId"])
+        return LabelFrames(frames, number_of_frames, is_frame_group, asset["externalId"])
 
     def __init__(self, frames, number_frames, is_frame_group, external_id) -> None:
         self.frames = frames
