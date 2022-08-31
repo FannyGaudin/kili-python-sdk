@@ -8,7 +8,7 @@ category_ids: Dict[str, JobCategory] = {
     "JOB_0__OBJECT_A": job_category_a,
     "JOB_0__OBJECT_B": job_category_b,
 }
-job_0 = {
+job_object_detection = {
     "JOB_0": {
         "annotations": [
             {
@@ -32,9 +32,9 @@ job_0 = {
         ]
     }
 }
-asset = {
+asset_image = {
     "latestLabel": {
-        "jsonResponse": job_0,
+        "jsonResponse": job_object_detection,
         "author": {"firstname": "Jean-Pierre", "lastname": "Dupont"},
     },
     "externalId": "car_1",
@@ -42,14 +42,36 @@ asset = {
     "jsonContent": "",
 }
 
-asset_frame = {
+asset_video = {
     "latestLabel": {
         "jsonResponse": {
-            "0": job_0,
-            "1": job_0,
-            "2": job_0,
-            "3": job_0,
+            "0": job_object_detection,
+            "1": job_object_detection,
+            "2": job_object_detection,
+            "3": job_object_detection,
         }
+    },
+    "externalId": "video_1",
+    "content": "https://storage.googleapis.com/label-public-staging/video1/video1.mp4",
+    "jsonContent": "",
+}
+
+asset_video_frames = {
+    "latestLabel": {
+        "jsonResponse": [
+            {
+                "0": job_object_detection,
+                "1": job_object_detection,
+                "2": job_object_detection,
+                "3": job_object_detection,
+            },
+            {
+                "0": job_object_detection,
+                "1": job_object_detection,
+                "2": job_object_detection,
+                "3": job_object_detection,
+            },
+        ]
     },
     "externalId": "video_1",
     "content": "https://storage.googleapis.com/label-public-staging/video1/video1.mp4",

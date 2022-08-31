@@ -3,7 +3,7 @@ import glob
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from test.services.export.fakes.fake_data import asset, asset_frame, category_ids
+from test.services.export.fakes.fake_data import asset_image, asset_video, category_ids
 from test.services.export.fakes.fake_kili import FakeKili
 from unittest import TestCase
 from zipfile import ZipFile
@@ -54,7 +54,7 @@ class YoloTestCase(TestCase):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
                 asset_remote_content, video_filenames = _process_asset_for_job(
-                    asset, images_folder, labels_folder, category_ids
+                    asset_image, images_folder, labels_folder, category_ids
                 )
 
                 nb_files = len(
@@ -83,7 +83,7 @@ class YoloTestCase(TestCase):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
                 asset_remote_content, video_filenames = _process_asset_for_job(
-                    asset_frame, images_folder, labels_folder, category_ids
+                    asset_video, images_folder, labels_folder, category_ids
                 )
 
                 nb_files = len(
@@ -117,7 +117,7 @@ class YoloTestCase(TestCase):
 
     def test_convert_from_kili_to_yolo_format(self):
         converted_annotations = _convert_from_kili_to_yolo_format(
-            "JOB_0", asset["latestLabel"], category_ids
+            "JOB_0", asset_image["latestLabel"], category_ids
         )
         expected_annotations = [
             (0, 0.501415026274802, 0.5296278884310182, 0.6727472455849373, 0.5381320101586394)

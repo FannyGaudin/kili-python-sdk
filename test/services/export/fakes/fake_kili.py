@@ -2,7 +2,7 @@
 Fake Kili object
 """
 
-from test.services.export.fakes.fake_data import asset
+from test.services.export.fakes.fake_data import asset_image
 from typing import List, Optional
 
 
@@ -23,7 +23,7 @@ class FakeKili(object):
         """
         _ = fields, label_type_in, asset_id_in
         if project_id == "1bb":
-            return [asset]
+            return [asset_image]
         else:
             return []
 
