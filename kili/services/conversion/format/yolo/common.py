@@ -2,6 +2,7 @@ import csv
 import json
 import logging
 import os
+from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Set
 
 import requests
@@ -79,6 +80,21 @@ class LabelFrames:
         Get label filemame for index
         """
         return f"{self.external_id}_{str(idx + 1).zfill(self.get_leading_zeros())}"
+
+
+class YoloFormatExporter(metaclass=ABCMeta):
+    def __init__(self, project_id, export_type, label_format, disable_tqdm, kili, logger):
+
+        self.project_id = project_id
+        self.export_type = export_type
+        self.label_format = label_format
+        self.disable_tqdm = disable_tqdm
+        self.kili = kili
+        self.logger = logger
+
+    @abstractmethod
+    def process_and_save(self, assets: List[Dict], output_filename: str) -> None:
+        pass
 
 
 def get_project_and_init(kili, project_id: str):

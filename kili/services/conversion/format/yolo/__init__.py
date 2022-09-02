@@ -3,23 +3,21 @@ Functions to export a project to YOLOv4 or v5 format
 """
 
 import logging
+from abc import ABCMeta, abstractmethod
+from typing import Dict, List
 
 from kili.services.conversion.format.base import (
     BaseFormatter,
     ExportParams,
     LoggerParams,
 )
-from kili.services.conversion.format.yolo.merge import (
-    process_and_save_yolo_pytorch_export_merge,
-)
-from kili.services.conversion.format.yolo.split import (
-    process_and_save_yolo_pytorch_export_split,
-)
+from kili.services.conversion.format.yolo.merge import YoloMergeExporter
+from kili.services.conversion.format.yolo.split import YoloSplitExporter
 from kili.services.conversion.tools import fetch_assets
 from kili.services.conversion.typing import SplitOption
 
 
-class YoloFormatter(BaseFormatter):
+class YoloFormatter(BaseFormatter, ABCMeta):
     # pylint: disable=too-few-public-methods
 
     """
@@ -42,23 +40,21 @@ class YoloFormatter(BaseFormatter):
             disable_tqdm=logger_params.disable_tqdm,
         )
         if export_params.split_option == SplitOption.SPLIT_FOLDER:
-            return process_and_save_yolo_pytorch_export_split(
-                kili,
-                export_params.export_type,
-                assets,
+
+            return YoloSplitExporter(
                 export_params.project_id,
+                export_params.export_type,
                 export_params.label_format,
-                logger,
-                export_params.output_file,
                 logger_params.disable_tqdm,
-            )
-        return process_and_save_yolo_pytorch_export_merge(
-            kili,
-            export_params.export_type,
-            assets,
+                kili,
+                logger,
+            ).process_and_save(assets, export_params.output_file)
+
+        return YoloMergeExporter(
             export_params.project_id,
+            export_params.export_type,
             export_params.label_format,
-            logger,
-            export_params.output_file,
             logger_params.disable_tqdm,
-        )
+            kili,
+            logger,
+        ).process_and_save(assets, export_params.output_file)
