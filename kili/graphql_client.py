@@ -85,9 +85,9 @@ class GraphQLClient:
         if self.session is not None:
             try:
                 try:
-                    number_of_trials = int(os.getenv("KILI_SDK_TRIALS_NUMBER", "10"))
+                    number_of_trials = int(os.getenv("KILI_SDK_TRIALS_NUMBER", "1"))
                 except ValueError:
-                    number_of_trials = 10
+                    number_of_trials = 1
                 for trial_number in range(number_of_trials):
                     self.session.verify = self.verify
                     req = self.session.post(
