@@ -1,9 +1,6 @@
 """
 Functions to export a project to YOLOv4 or v5 format, with a merged folder layout
 """
-
-import csv
-import json
 import os
 import shutil
 from tempfile import TemporaryDirectory
@@ -14,6 +11,8 @@ from kili.services.conversion.format.yolo.common import (
     get_category_full_name,
     process_asset_for_job,
     write_class_file,
+    write_remote_content_file,
+    write_video_metadata_file,
 )
 from kili.services.conversion.tools import create_readme_kili_file
 from kili.services.conversion.typing import ExportType, JobCategory
@@ -62,19 +61,11 @@ def process_and_save_yolo_pytorch_export_merge(
             remote_content.extend(asset_remote_content)
 
         if video_metadata:
-            video_metadata_json = json.dumps(video_metadata, sort_keys=True, indent=4)
-            if video_metadata_json is not None:
-                meta_json_path = os.path.join(base_folder, "video_meta.json")
-                with open(meta_json_path, "wb") as output_file:
-                    output_file.write(video_metadata_json.encode("utf-8"))
+            write_video_metadata_file(video_metadata, base_folder)
 
         if len(remote_content) > 0:
-            remote_content_header = ["external id", "url", "label file"]
-            remote_file_path = os.path.join(images_folder, "remote_assets.csv")
-            with open(remote_file_path, "w", encoding="utf8") as fout:
-                writer = csv.writer(fout)
-                writer.writerow(remote_content_header)
-                writer.writerows(remote_content)
+            write_remote_content_file(remote_content, images_folder)
+
         create_readme_kili_file(kili, root_folder, project_id, label_format, export_type)
         path_folder = os.path.join(root_folder, project_id)
         path_archive = shutil.make_archive(path_folder, "zip", path_folder)

@@ -1,3 +1,5 @@
+import csv
+import json
 import logging
 import os
 from typing import Dict, List, Set
@@ -125,7 +127,9 @@ def process_asset_for_job(
 ):
     # pylint: disable=too-many-locals, too-many-branches
     """
-    Process an asset for all job_ids of category_ids
+    Process an asset for all job_ids of category_ids.
+
+
     """
     asset_remote_content = []
     job_ids = set(map(lambda job_category: job_category.job_id, category_ids.values()))
@@ -143,12 +147,12 @@ def process_asset_for_job(
         else:
             filename = asset["externalId"]
 
-        annotations = _get_frame_annotations(frame, job_ids, category_ids)
+        frame_labels = _get_frame_labels(frame, job_ids, category_ids)
 
-        if not annotations:
+        if not frame_labels:
             continue
 
-        _write_label_file(labels_folder, filename, annotations)
+        _write_labels_to_file(labels_folder, filename, frame_labels)
 
         content_frame = content_frames[idx] if content_frames else asset["content"]
         if is_asset_served_by_kili(content_frame):
@@ -197,7 +201,7 @@ def write_class_file(
             fout.write(f"names: [{categories[:-2]}]\n".encode())
 
 
-def _get_frame_annotations(
+def _get_frame_labels(
     frame: Dict, job_ids: Set[str], category_ids: Dict[str, JobCategory]
 ) -> List[YoloAnnotation]:
     annotations = []
@@ -244,7 +248,24 @@ def _write_content_frame_to_file(
             fout.write(block)
 
 
-def _write_label_file(labels_folder: str, filename: str, annotations: List[YoloAnnotation]):
+def _write_labels_to_file(labels_folder: str, filename: str, annotations: List[YoloAnnotation]):
     with open(os.path.join(labels_folder, f"{filename}.txt"), "wb") as fout:
         for category_idx, _x_, _y_, _w_, _h_ in annotations:
             fout.write(f"{category_idx} {_x_} {_y_} {_w_} {_h_}\n".encode())
+
+
+def write_video_metadata_file(video_metadata: Dict, base_folder: str):
+    video_metadata_json = json.dumps(video_metadata, sort_keys=True, indent=4)
+    if video_metadata_json is not None:
+        meta_json_path = os.path.join(base_folder, "video_meta.json")
+        with open(meta_json_path, "wb") as output_file:
+            output_file.write(video_metadata_json.encode("utf-8"))
+
+
+def write_remote_content_file(remote_content: List[str], images_folder: str):
+    remote_content_header = ["external id", "url", "label file"]
+    remote_file_path = os.path.join(images_folder, "remote_assets.csv")
+    with open(remote_file_path, "w", encoding="utf8") as file:
+        writer = csv.writer(file)
+        writer.writerow(remote_content_header)
+        writer.writerows(remote_content)
