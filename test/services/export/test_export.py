@@ -199,7 +199,6 @@ class YoloTestCase(TestCase):
                     export_kwargs = {
                         "asset_ids": [],
                         "project_id": "1bb",
-                        "project_title": "test project",
                         "split_option": SplitOption.MERGED_FOLDER,
                         "export_type": ExportType.LATEST,
                         "output_file": str(path_zipfile),

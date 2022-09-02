@@ -24,7 +24,6 @@ def process_and_save_yolo_pytorch_export_merge(
     export_type: ExportType,
     assets: List[Dict],
     project_id: str,
-    project_name: str,
     label_format: AnnotationFormat,
     logger,
     output_filename: str,
@@ -33,7 +32,6 @@ def process_and_save_yolo_pytorch_export_merge(
     """
     Save the assets and annotations to a zip file in the Yolo format.
     """
-    _ = project_name
     logger.info("Exporting yolo format merged")
 
     json_interface = kili.projects(project_id=project_id, fields=["jsonInterface"])[0][

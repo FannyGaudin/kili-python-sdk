@@ -61,7 +61,6 @@ class Project:  # pylint: disable=too-few-public-methods
                 self.client,
                 asset_ids=cast(Optional[List[str]], asset_ids),
                 project_id=self.project_id,
-                project_title=self.title,
                 export_type=export_type_mapping[export_type],
                 label_format=format_mapping[output_format],
                 split_option=split_mapping[split_option],

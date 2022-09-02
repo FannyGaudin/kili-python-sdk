@@ -1,3 +1,6 @@
+"""
+Handles the Yolo export with the split layout
+"""
 import csv
 import json
 import os
@@ -15,13 +18,11 @@ from kili.services.conversion.tools import create_readme_kili_file
 from kili.services.conversion.typing import ExportType, JobCategory
 
 
-# Split folders
 def process_and_save_yolo_pytorch_export_split(
     kili,
     export_type: ExportType,
     assets: List[Dict],
     project_id: str,
-    project_name: str,
     label_format: AnnotationFormat,
     logger,
     output_file: str,
@@ -31,7 +32,6 @@ def process_and_save_yolo_pytorch_export_split(
     Save the assets and annotations to a zip file in the Yolo format.
     Split each job in a different folder with its own class file.
     """
-    _ = project_name
     logger.info("Exporting yolo format splitted")
 
     json_interface = kili.projects(

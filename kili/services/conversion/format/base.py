@@ -17,7 +17,6 @@ class ExportParams(NamedTuple):
     assets_ids: Optional[List[str]]
     export_type: ExportType
     project_id: str
-    project_name: str
     label_format: AnnotationFormat
     split_option: SplitOption
     output_file: str

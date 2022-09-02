@@ -13,7 +13,6 @@ def export_assets(  # pylint: disable=too-many-arguments
     kili,
     asset_ids: Optional[List[str]],
     project_id: str,
-    project_title: str,
     export_type: ExportType,
     label_format: LabelFormat,
     split_option: SplitOption,
@@ -26,7 +25,6 @@ def export_assets(  # pylint: disable=too-many-arguments
     export_params = ExportParams(
         assets_ids=asset_ids,
         project_id=project_id,
-        project_name=project_title,
         export_type=export_type,
         label_format=label_format.lower(),
         split_option=split_option,
