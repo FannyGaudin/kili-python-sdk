@@ -22,12 +22,13 @@ class ExportParams(NamedTuple):
     output_file: str
 
 
-class RequestParams(NamedTuple):
+class LoggerParams(NamedTuple):
     """
-    Contains all parameters not directly linked to export
+    Contains all parameters related tologging
     """
 
-    user_email: str
+    user_email: Optional[str]
+    disable_tqdm: bool
 
 
 class BaseFormatter(ABC):
@@ -39,7 +40,7 @@ class BaseFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def export_project(kili, export_params: ExportParams) -> str:
+    def export_project(kili, export_params: ExportParams, logger_params: LoggerParams) -> str:
         """
         Export a project to a json.
         Return the name of the exported archive file in the bucket.

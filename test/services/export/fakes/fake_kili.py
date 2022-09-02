@@ -17,11 +17,12 @@ class FakeKili(object):
         fields: List[str],
         label_type_in: Optional[List[str]] = None,
         asset_id_in: Optional[List[str]] = None,
+        disable_tqdm: bool = False,
     ):
         """
         Fake assets
         """
-        _ = fields, label_type_in, asset_id_in
+        _ = fields, label_type_in, asset_id_in, disable_tqdm
         if project_id == "1bb":
             return [asset_image]
         else:

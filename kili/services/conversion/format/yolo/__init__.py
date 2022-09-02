@@ -4,7 +4,11 @@ Functions to export a project to YOLOv4 or v5 format
 
 import logging
 
-from kili.services.conversion.format.base import BaseFormatter, ExportParams
+from kili.services.conversion.format.base import (
+    BaseFormatter,
+    ExportParams,
+    LoggerParams,
+)
 from kili.services.conversion.format.yolo.merge import (
     process_and_save_yolo_pytorch_export_merge,
 )
@@ -23,16 +27,19 @@ class YoloFormatter(BaseFormatter):
     """
 
     @staticmethod
-    def export_project(kili, export_params: ExportParams) -> None:
+    def export_project(kili, export_params: ExportParams, logger_params: LoggerParams) -> None:
         """
         Export a project to YOLO v4 or v5 format
         """
+        logger = logging.getLogger("kili.services.conversion.export")
+        logger.warning("Fetching assets ...")
         assets = fetch_assets(
             kili,
             project_id=export_params.project_id,
             asset_ids=export_params.assets_ids,
             export_type=export_params.export_type,
             label_type_in=["DEFAULT", "REVIEW"],
+            disable_tqdm=logger_params.disable_tqdm,
         )
         if export_params.split_option == SplitOption.SPLIT_FOLDER:
             return process_and_save_yolo_pytorch_export_split(
@@ -41,8 +48,9 @@ class YoloFormatter(BaseFormatter):
                 assets,
                 export_params.project_id,
                 export_params.label_format,
-                logging,
+                logger,
                 export_params.output_file,
+                logger_params.disable_tqdm,
             )
         return process_and_save_yolo_pytorch_export_merge(
             kili,
@@ -50,6 +58,7 @@ class YoloFormatter(BaseFormatter):
             assets,
             export_params.project_id,
             export_params.label_format,
-            logging,
+            logger,
             export_params.output_file,
+            logger_params.disable_tqdm,
         )

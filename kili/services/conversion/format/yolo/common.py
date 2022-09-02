@@ -5,6 +5,7 @@ import os
 from typing import Dict, List, Set
 
 import requests
+from tqdm.autonotebook import tqdm
 
 from kili.orm import AnnotationFormat, JobMLTask, JobTool
 from kili.services.conversion.tools import (
@@ -80,7 +81,10 @@ class LabelFrames:
         return f"{self.external_id}_{str(idx + 1).zfill(self.get_leading_zeros())}"
 
 
-def get_and_validate_project(kili, project_id: str):
+def get_project_and_init(kili, project_id: str):
+    """
+    Get and validate the project
+    """
     json_interface = kili.projects(
         project_id=project_id, fields=["jsonInterface"], disable_tqdm=True
     )[0]["jsonInterface"]
@@ -232,13 +236,14 @@ def write_labels_into_single_folder(
     images_folder: str,
     base_folder: str,
     label_format: AnnotationFormat,
+    disable_tqdm: bool,
 ):
     _write_class_file(base_folder, merged_categories_id, label_format)
 
     remote_content = []
     video_metadata = {}
 
-    for asset in assets:
+    for asset in tqdm(assets, disable=disable_tqdm):
         asset_remote_content, video_filenames = _process_asset(
             asset, images_folder, labels_folder, merged_categories_id
         )

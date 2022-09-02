@@ -4,7 +4,7 @@ Set of common functions used by different export formats
 import os
 import re
 from datetime import datetime
-from typing import Iterator
+from typing import Iterator, List, Optional
 
 from kili.orm import AnnotationFormat
 
@@ -68,7 +68,9 @@ def create_readme_kili_file(kili, folder, project_id, label_format, export_type)
     Create a README.kili.txt file to give information about exported labels
     """
     readme_file_name = os.path.join(folder, project_id, "README.kili.txt")
-    project_info = kili.projects(project_id=project_id, fields=["title", "id", "description"])[0]
+    project_info = kili.projects(
+        project_id=project_id, fields=["title", "id", "description"], disable_tqdm=True
+    )[0]
     with open(readme_file_name, "wb") as fout:
         fout.write("Exported Labels from KILI\n=========================\n\n".encode())
         fout.write(f"- Project name: {project_info['title']}\n".encode())
@@ -79,7 +81,14 @@ def create_readme_kili_file(kili, folder, project_id, label_format, export_type)
         fout.write(f"- Exported labels: {export_type}\n".encode())
 
 
-def fetch_assets(kili, project_id, asset_ids, export_type, label_type_in=None):
+def fetch_assets(
+    kili,
+    project_id: str,
+    asset_ids: Optional[List[str]],
+    export_type,
+    label_type_in=None,
+    disable_tqdm: bool = False,
+):
     """
     Fetches assets where ID are in asset_ids if the list has more than one element,
     else all the assets of the project
@@ -99,9 +108,15 @@ def fetch_assets(kili, project_id, asset_ids, export_type, label_type_in=None):
             project_id=project_id,
             fields=fields,
             label_type_in=label_type_in,
+            disable_tqdm=disable_tqdm,
         )
     else:
-        assets = kili.assets(project_id=project_id, fields=fields, label_type_in=label_type_in)
+        assets = kili.assets(
+            project_id=project_id,
+            fields=fields,
+            label_type_in=label_type_in,
+            disable_tqdm=disable_tqdm,
+        )
     attach_name_to_assets_labels_author(assets, export_type)
     return assets
 
@@ -135,7 +150,9 @@ def generates_jobs_list(kili, project_id, ml_task, tool) -> Iterator[str]:
     - ml_task: ML Task (eg. OBJECT_DETECTION)
     - tool: type of the tool (eg. rectangle)
     """
-    projects = kili.projects(project_id=project_id, fields=["id", "jsonInterface"])
+    projects = kili.projects(
+        project_id=project_id, fields=["id", "jsonInterface"], disable_tqdm=True
+    )
     assert len(projects) == 1
     json_interface = projects[0]["jsonInterface"]
     for job_id, job in json_interface.get("jobs", {}).items():

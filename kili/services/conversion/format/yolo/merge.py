@@ -1,6 +1,7 @@
 """
 Functions to export a project to YOLOv4 or v5 format, with a merged folder layout
 """
+import logging
 import os
 import shutil
 from tempfile import TemporaryDirectory
@@ -8,8 +9,8 @@ from typing import Dict, List
 
 from kili.orm import AnnotationFormat
 from kili.services.conversion.format.yolo.common import (
-    get_and_validate_project,
     get_category_full_name,
+    get_project_and_init,
     write_labels_into_single_folder,
 )
 from kili.services.conversion.tools import create_readme_kili_file
@@ -24,14 +25,16 @@ def process_and_save_yolo_pytorch_export_merge(
     label_format: AnnotationFormat,
     logger,
     output_filename: str,
+    disable_tqdm: bool,
 ) -> None:
     # pylint: disable=too-many-locals, too-many-arguments
     """
     Save the assets and annotations to a zip file in the Yolo format.
     """
-    logger.info("Exporting yolo format merged")
+    logger = logging.getLogger("kili.services.conversion.export")
+    logger.warning("Exporting to yolo format merged...")
 
-    json_interface, ml_task, tool = get_and_validate_project(kili, project_id)
+    json_interface, ml_task, tool = get_project_and_init(kili, project_id)
     merged_categories_id = _get_merged_categories(json_interface, ml_task, tool)
 
     with TemporaryDirectory() as root_folder:
@@ -41,12 +44,20 @@ def process_and_save_yolo_pytorch_export_merge(
         os.makedirs(images_folder)
         os.makedirs(labels_folder)
         write_labels_into_single_folder(
-            assets, merged_categories_id, labels_folder, images_folder, base_folder, label_format
+            assets,
+            merged_categories_id,
+            labels_folder,
+            images_folder,
+            base_folder,
+            label_format,
+            disable_tqdm,
         )
         create_readme_kili_file(kili, root_folder, project_id, label_format, export_type)
         path_folder = os.path.join(root_folder, project_id)
         path_archive = shutil.make_archive(path_folder, "zip", path_folder)
         shutil.copy(path_archive, output_filename)
+
+    logger.warning("Done!")
 
 
 def _get_merged_categories(json_interface: Dict, ml_task: str, tool: str) -> Dict[str, JobCategory]:

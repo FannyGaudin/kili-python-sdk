@@ -4,7 +4,7 @@ Python SDK service layer
 from logging import getLogger
 from typing import List, Optional
 
-from kili.services.conversion.format.base import ExportParams
+from kili.services.conversion.format.base import ExportParams, LoggerParams
 from kili.services.conversion.format.yolo import YoloFormatter
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
@@ -17,6 +17,7 @@ def export_assets(  # pylint: disable=too-many-arguments
     label_format: LabelFormat,
     split_option: SplitOption,
     output_file: str,
+    disable_tqdm: bool,
 ) -> None:
     """
     Export the selected assets into the required format, and save it into a file archive.
@@ -31,10 +32,15 @@ def export_assets(  # pylint: disable=too-many-arguments
         output_file=output_file,
     )
 
+    logger_params = LoggerParams(
+        disable_tqdm=disable_tqdm,
+        user_email=None,
+    )
+
     # if label_format in [LabelFormat.RAW, LabelFormat.SIMPLE]:
     # return KiliFormatter.export_project(export_params, request_params)
     if label_format in [LabelFormat.YOLO_V4, LabelFormat.YOLO_V5]:
-        YoloFormatter.export_project(kili, export_params)
+        YoloFormatter.export_project(kili, export_params, logger_params)
     # if label_format in [LabelFormat.PASCAL_VOC]:
     #     return VocFormatter.export_project(export_params, request_params)
     # raise Exception('Case not handled')

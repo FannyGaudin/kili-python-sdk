@@ -52,6 +52,7 @@ class Project:  # pylint: disable=too-few-public-methods
         asset_ids: Optional[List[AssetId]] = None,
         export_type: ExportType = "normal",
         split_option: SplitOption = "split",
+        disable_tqdm: bool = False,
     ) -> None:
         """
         Export the project assets with the requested format into the requested output path
@@ -65,6 +66,7 @@ class Project:  # pylint: disable=too-few-public-methods
                 label_format=format_mapping[output_format],
                 split_option=split_mapping[split_option],
                 output_file=path_output,
+                disable_tqdm=disable_tqdm,
             )
         else:
             raise NotImplementedError()

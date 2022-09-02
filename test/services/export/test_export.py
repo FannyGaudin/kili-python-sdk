@@ -202,6 +202,7 @@ class YoloTestCase(TestCase):
                         "split_option": SplitOption.MERGED_FOLDER,
                         "export_type": ExportType.LATEST,
                         "output_file": str(path_zipfile),
+                        "disable_tqdm": True,
                     }
 
                     export_kwargs.update(use_case["export_kwargs"])
