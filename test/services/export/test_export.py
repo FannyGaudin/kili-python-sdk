@@ -10,10 +10,10 @@ from zipfile import ZipFile
 
 from kili.orm import AnnotationFormat
 from kili.services import export_assets
-from kili.services.conversion.format.yolo import (
+from kili.services.conversion.format.yolo.common import (
     _convert_from_kili_to_yolo_format,
-    _process_asset_for_job,
-    _write_class_file,
+    process_asset_for_job,
+    write_class_file,
 )
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
@@ -53,7 +53,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                asset_remote_content, video_filenames = _process_asset_for_job(
+                asset_remote_content, video_filenames = process_asset_for_job(
                     asset_image, images_folder, labels_folder, category_ids
                 )
 
@@ -82,7 +82,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_frame_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                asset_remote_content, video_filenames = _process_asset_for_job(
+                asset_remote_content, video_filenames = process_asset_for_job(
                     asset_video, images_folder, labels_folder, category_ids
                 )
 
@@ -127,7 +127,7 @@ class YoloTestCase(TestCase):
 
     def test_write_class_file_yolo_v4(self):
         with TemporaryDirectory() as directory:
-            _write_class_file(directory, category_ids, AnnotationFormat.YoloV4)
+            write_class_file(directory, category_ids, AnnotationFormat.YoloV4)
             self.assertTrue(os.path.isfile(os.path.join(directory, "classes.txt")))
             with open(os.path.join(directory, "classes.txt"), "rb") as created_file:
                 with open("./test/services/export/expected/classes.txt", "rb") as expected_file:
@@ -135,38 +135,20 @@ class YoloTestCase(TestCase):
 
     def test_write_class_file_yolo_v5(self):
         with TemporaryDirectory() as directory:
-            _write_class_file(directory, category_ids, AnnotationFormat.YoloV5)
+            write_class_file(directory, category_ids, AnnotationFormat.YoloV5)
             self.assertTrue(os.path.isfile(os.path.join(directory, "data.yaml")))
             with open(os.path.join(directory, "data.yaml"), "rb") as created_file:
                 with open("./test/services/export/expected/data.yaml", "rb") as expected_file:
                     self.assertEqual(expected_file.read(), created_file.read())
 
-    def test_conversion_service_split(self):
-        with TemporaryDirectory() as export_folder:
-            with TemporaryDirectory() as extract_folder:
-
-                path_zipfile = Path(export_folder) / "export.zip"
-                path_zipfile.parent.mkdir(parents=True, exist_ok=True)
-
-                fake_kili = FakeKili()
-                export_assets(
-                    fake_kili,
-                    asset_ids=[],
-                    project_id="1bb",
-                    project_title="test project",
-                    export_type=ExportType.LATEST,
-                    label_format=LabelFormat.YOLO_V5,
-                    split_option=SplitOption.SPLIT_FOLDER,
-                    output_file=str(path_zipfile),
-                )
-
-                Path(extract_folder).mkdir(parents=True, exist_ok=True)
-                with ZipFile(path_zipfile, "r") as z:
-                    z.extractall(extract_folder)
-
-                file_tree_result = get_file_tree(extract_folder)
-
-                file_tree_expected = {
+    def test_conversion_service(self):
+        use_cases = [
+            {
+                "export_kwargs": {
+                    "label_format": LabelFormat.YOLO_V5,
+                    "split_option": SplitOption.SPLIT_FOLDER,
+                },
+                "file_tree_expected": {
                     "images": {"remote_assets.csv": {}},
                     "JOB_0": {
                         "labels": {
@@ -178,41 +160,63 @@ class YoloTestCase(TestCase):
                     "JOB_2": {"labels": {}, "data.yaml": {}},
                     "JOB_3": {"labels": {}, "data.yaml": {}},
                     "README.kili.txt": {},
-                }
-
-                assert file_tree_result == file_tree_expected
-
-    def test_conversion_service_nonsplit(self):
-
-        with TemporaryDirectory() as export_folder:
-            with TemporaryDirectory() as extract_folder:
-
-                path_zipfile = Path(export_folder) / "export.zip"
-                path_zipfile.parent.mkdir(parents=True, exist_ok=True)
-
-                fake_kili = FakeKili()
-                export_assets(
-                    fake_kili,
-                    asset_ids=[],
-                    project_id="1bb",
-                    project_title="test project",
-                    export_type=ExportType.LATEST,
-                    label_format=LabelFormat.YOLO_V5,
-                    split_option=SplitOption.MERGED_FOLDER,
-                    output_file=str(path_zipfile),
-                )
-
-                Path(extract_folder).mkdir(parents=True, exist_ok=True)
-                with ZipFile(path_zipfile, "r") as z_f:
-                    z_f.extractall(extract_folder)
-
-                file_tree_result = get_file_tree(extract_folder)
-
-                file_tree_expected = {
+                },
+            },
+            {
+                "export_kwargs": {
+                    "label_format": LabelFormat.YOLO_V5,
+                    "split_option": SplitOption.MERGED_FOLDER,
+                },
+                "file_tree_expected": {
                     "images": {"remote_assets.csv": {}},
                     "labels": {"car_1.txt": {}},
                     "data.yaml": {},
                     "README.kili.txt": {},
-                }
+                },
+            },
+            {
+                "export_kwargs": {
+                    "label_format": LabelFormat.YOLO_V4,
+                    "split_option": SplitOption.MERGED_FOLDER,
+                },
+                "file_tree_expected": {
+                    "images": {"remote_assets.csv": {}},
+                    "labels": {"car_1.txt": {}},
+                    "classes.txt": {},
+                    "README.kili.txt": {},
+                },
+            },
+        ]
 
-                assert file_tree_result == file_tree_expected
+        for use_case in use_cases:
+            with TemporaryDirectory() as export_folder:
+                with TemporaryDirectory() as extract_folder:
+
+                    path_zipfile = Path(export_folder) / "export.zip"
+                    path_zipfile.parent.mkdir(parents=True, exist_ok=True)
+
+                    fake_kili = FakeKili()
+                    export_kwargs = {
+                        "asset_ids": [],
+                        "project_id": "1bb",
+                        "project_title": "test project",
+                        "split_option": SplitOption.MERGED_FOLDER,
+                        "export_type": ExportType.LATEST,
+                        "output_file": str(path_zipfile),
+                    }
+
+                    export_kwargs.update(use_case["export_kwargs"])
+                    export_assets(
+                        fake_kili,
+                        **export_kwargs,
+                    )
+
+                    Path(extract_folder).mkdir(parents=True, exist_ok=True)
+                    with ZipFile(path_zipfile, "r") as z_f:
+                        z_f.extractall(extract_folder)
+
+                    file_tree_result = get_file_tree(extract_folder)
+
+                    file_tree_expected = use_case["file_tree_expected"]
+
+                    assert file_tree_result == file_tree_expected

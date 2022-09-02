@@ -2,7 +2,7 @@
 Types used by the conversion service
 """
 from enum import Enum
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -63,3 +63,6 @@ class JobCategory(NamedTuple):
     category_name: str
     id: int
     job_id: str
+
+
+YoloAnnotation = Tuple[int, float, float, float, float]
