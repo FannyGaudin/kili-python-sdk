@@ -6,7 +6,7 @@ from typing import Dict, List, Set
 
 import requests
 
-from kili.orm import AnnotationFormat
+from kili.orm import AnnotationFormat, JobMLTask, JobTool
 from kili.services.conversion.tools import (
     get_endpoint_router_from_services,
     is_asset_served_by_kili,
@@ -80,6 +80,17 @@ class LabelFrames:
         return f"{self.external_id}_{str(idx + 1).zfill(self.get_leading_zeros())}"
 
 
+def get_and_validate_project(kili, project_id: str):
+    json_interface = kili.projects(
+        project_id=project_id, fields=["jsonInterface"], disable_tqdm=True
+    )[0]["jsonInterface"]
+
+    ml_task = JobMLTask.ObjectDetection
+    tool = JobTool.Rectangle
+
+    return json_interface, ml_task, tool
+
+
 def _convert_from_kili_to_yolo_format(
     job_id: str, label: Dict, category_ids: Dict[str, JobCategory]
 ) -> List[YoloAnnotation]:
@@ -122,7 +133,7 @@ def get_category_full_name(job_id: str, category_name: str):
     return f"{job_id}__{category_name}"
 
 
-def process_asset_for_job(
+def _process_asset(
     asset: Dict, images_folder: str, labels_folder: str, category_ids: Dict[str, JobCategory]
 ):
     # pylint: disable=too-many-locals, too-many-branches
@@ -182,7 +193,7 @@ def process_asset_for_job(
     return asset_remote_content, video_filenames
 
 
-def write_class_file(
+def _write_class_file(
     folder: str, category_ids: Dict[str, JobCategory], label_format: AnnotationFormat
 ):
     """
@@ -212,6 +223,34 @@ def _get_frame_labels(
         annotations += job_annotations
 
     return annotations
+
+
+def write_labels_into_single_folder(
+    assets: List[Dict],
+    merged_categories_id: Dict[str, JobCategory],
+    labels_folder: str,
+    images_folder: str,
+    base_folder: str,
+    label_format: AnnotationFormat,
+):
+    _write_class_file(base_folder, merged_categories_id, label_format)
+
+    remote_content = []
+    video_metadata = {}
+
+    for asset in assets:
+        asset_remote_content, video_filenames = _process_asset(
+            asset, images_folder, labels_folder, merged_categories_id
+        )
+        if video_filenames:
+            video_metadata[asset["externalId"]] = video_filenames
+        remote_content.extend(asset_remote_content)
+
+    if video_metadata:
+        _write_video_metadata_file(video_metadata, base_folder)
+
+    if len(remote_content) > 0:
+        _write_remote_content_file(remote_content, images_folder)
 
 
 def _write_content_frame_to_file(
@@ -248,13 +287,18 @@ def _write_content_frame_to_file(
             fout.write(block)
 
 
-def _write_labels_to_file(labels_folder: str, filename: str, annotations: List[YoloAnnotation]):
+def _write_labels_to_file(
+    labels_folder: str, filename: str, annotations: List[YoloAnnotation]
+) -> None:
     with open(os.path.join(labels_folder, f"{filename}.txt"), "wb") as fout:
         for category_idx, _x_, _y_, _w_, _h_ in annotations:
             fout.write(f"{category_idx} {_x_} {_y_} {_w_} {_h_}\n".encode())
 
 
-def write_video_metadata_file(video_metadata: Dict, base_folder: str):
+def _write_video_metadata_file(video_metadata: Dict, base_folder: str) -> None:
+    """
+    Write video metadata file
+    """
     video_metadata_json = json.dumps(video_metadata, sort_keys=True, indent=4)
     if video_metadata_json is not None:
         meta_json_path = os.path.join(base_folder, "video_meta.json")
@@ -262,7 +306,10 @@ def write_video_metadata_file(video_metadata: Dict, base_folder: str):
             output_file.write(video_metadata_json.encode("utf-8"))
 
 
-def write_remote_content_file(remote_content: List[str], images_folder: str):
+def _write_remote_content_file(remote_content: List[str], images_folder: str) -> None:
+    """
+    Write remote content file
+    """
     remote_content_header = ["external id", "url", "label file"]
     remote_file_path = os.path.join(images_folder, "remote_assets.csv")
     with open(remote_file_path, "w", encoding="utf8") as file:

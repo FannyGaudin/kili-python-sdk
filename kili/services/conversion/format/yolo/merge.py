@@ -6,13 +6,11 @@ import shutil
 from tempfile import TemporaryDirectory
 from typing import Dict, List
 
-from kili.orm import AnnotationFormat, JobMLTask, JobTool
+from kili.orm import AnnotationFormat
 from kili.services.conversion.format.yolo.common import (
+    get_and_validate_project,
     get_category_full_name,
-    process_asset_for_job,
-    write_class_file,
-    write_remote_content_file,
-    write_video_metadata_file,
+    write_labels_into_single_folder,
 )
 from kili.services.conversion.tools import create_readme_kili_file
 from kili.services.conversion.typing import ExportType, JobCategory
@@ -33,12 +31,7 @@ def process_and_save_yolo_pytorch_export_merge(
     """
     logger.info("Exporting yolo format merged")
 
-    json_interface = kili.projects(project_id=project_id, fields=["jsonInterface"])[0][
-        "jsonInterface"
-    ]
-    ml_task = JobMLTask.ObjectDetection
-    tool = JobTool.Rectangle
-
+    json_interface, ml_task, tool = get_and_validate_project(kili, project_id)
     merged_categories_id = _get_merged_categories(json_interface, ml_task, tool)
 
     with TemporaryDirectory() as root_folder:
@@ -47,25 +40,9 @@ def process_and_save_yolo_pytorch_export_merge(
         labels_folder = os.path.join(base_folder, "labels")
         os.makedirs(images_folder)
         os.makedirs(labels_folder)
-
-        write_class_file(base_folder, merged_categories_id, label_format)
-        remote_content = []
-        video_metadata = {}
-
-        for asset in assets:
-            asset_remote_content, video_filenames = process_asset_for_job(
-                asset, images_folder, labels_folder, merged_categories_id
-            )
-            if video_filenames:
-                video_metadata[asset["externalId"]] = video_filenames
-            remote_content.extend(asset_remote_content)
-
-        if video_metadata:
-            write_video_metadata_file(video_metadata, base_folder)
-
-        if len(remote_content) > 0:
-            write_remote_content_file(remote_content, images_folder)
-
+        write_labels_into_single_folder(
+            assets, merged_categories_id, labels_folder, images_folder, base_folder, label_format
+        )
         create_readme_kili_file(kili, root_folder, project_id, label_format, export_type)
         path_folder = os.path.join(root_folder, project_id)
         path_archive = shutil.make_archive(path_folder, "zip", path_folder)
@@ -73,6 +50,9 @@ def process_and_save_yolo_pytorch_export_merge(
 
 
 def _get_merged_categories(json_interface: Dict, ml_task: str, tool: str) -> Dict[str, JobCategory]:
+    """
+    Return a dictionary of JobCategory instances by category full name.
+    """
     cat_number = 0
     merged_categories_id: Dict[str, JobCategory] = {}
     for job_id, job in json_interface.get("jobs", {}).items():

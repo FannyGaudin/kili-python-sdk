@@ -12,8 +12,8 @@ from kili.orm import AnnotationFormat
 from kili.services import export_assets
 from kili.services.conversion.format.yolo.common import (
     _convert_from_kili_to_yolo_format,
-    process_asset_for_job,
-    write_class_file,
+    _process_asset,
+    _write_class_file,
 )
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
@@ -53,7 +53,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                asset_remote_content, video_filenames = process_asset_for_job(
+                asset_remote_content, video_filenames = _process_asset(
                     asset_image, images_folder, labels_folder, category_ids
                 )
 
@@ -82,7 +82,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_frame_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                asset_remote_content, video_filenames = process_asset_for_job(
+                asset_remote_content, video_filenames = _process_asset(
                     asset_video, images_folder, labels_folder, category_ids
                 )
 
@@ -127,7 +127,7 @@ class YoloTestCase(TestCase):
 
     def test_write_class_file_yolo_v4(self):
         with TemporaryDirectory() as directory:
-            write_class_file(directory, category_ids, AnnotationFormat.YoloV4)
+            _write_class_file(directory, category_ids, AnnotationFormat.YoloV4)
             self.assertTrue(os.path.isfile(os.path.join(directory, "classes.txt")))
             with open(os.path.join(directory, "classes.txt"), "rb") as created_file:
                 with open("./test/services/export/expected/classes.txt", "rb") as expected_file:
@@ -135,7 +135,7 @@ class YoloTestCase(TestCase):
 
     def test_write_class_file_yolo_v5(self):
         with TemporaryDirectory() as directory:
-            write_class_file(directory, category_ids, AnnotationFormat.YoloV5)
+            _write_class_file(directory, category_ids, AnnotationFormat.YoloV5)
             self.assertTrue(os.path.isfile(os.path.join(directory, "data.yaml")))
             with open(os.path.join(directory, "data.yaml"), "rb") as created_file:
                 with open("./test/services/export/expected/data.yaml", "rb") as expected_file:

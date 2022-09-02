@@ -6,13 +6,11 @@ import shutil
 from tempfile import TemporaryDirectory
 from typing import Dict, List
 
-from kili.orm import AnnotationFormat, JobMLTask, JobTool
+from kili.orm import AnnotationFormat
 from kili.services.conversion.format.yolo.common import (
+    get_and_validate_project,
     get_category_full_name,
-    process_asset_for_job,
-    write_class_file,
-    write_remote_content_file,
-    write_video_metadata_file,
+    write_labels_into_single_folder,
 )
 from kili.services.conversion.tools import create_readme_kili_file
 from kili.services.conversion.typing import ExportType, JobCategory
@@ -34,13 +32,7 @@ def process_and_save_yolo_pytorch_export_split(
     """
     logger.info("Exporting yolo format splitted")
 
-    json_interface = kili.projects(
-        project_id=project_id, fields=["jsonInterface"], disable_tqdm=True
-    )[0]["jsonInterface"]
-
-    ml_task = JobMLTask.ObjectDetection
-    tool = JobTool.Rectangle
-
+    json_interface, ml_task, tool = get_and_validate_project(kili, project_id)
     categories_by_job = _get_categories_by_job(json_interface, ml_task, tool)
 
     with TemporaryDirectory() as root_folder:
@@ -91,20 +83,11 @@ def _write_jobs_labels_into_split_folders(
         labels_folder = os.path.join(base_folder, "labels")
         os.makedirs(labels_folder)
 
-        write_class_file(base_folder, category_ids, label_format)
-        remote_content = []
-        video_metadata = {}
-
-        for asset in assets:
-            asset_remote_content, video_filenames = process_asset_for_job(
-                asset, images_folder, labels_folder, category_ids
-            )
-            if video_filenames:
-                video_metadata[asset["externalId"]] = video_filenames
-            remote_content.extend(asset_remote_content)
-
-        if video_metadata:
-            write_video_metadata_file(video_metadata, base_folder)
-
-        if len(remote_content) > 0:
-            write_remote_content_file(remote_content, images_folder)
+        write_labels_into_single_folder(
+            assets,
+            category_ids,
+            labels_folder,
+            images_folder,
+            base_folder,
+            label_format,
+        )
