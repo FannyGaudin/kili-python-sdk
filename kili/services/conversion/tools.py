@@ -63,24 +63,6 @@ def attach_name_to_assets_labels_author(assets, export_type):
             label["author"]["name"] = f"{firstname} {lastname}"
 
 
-def create_readme_kili_file(kili, folder, project_id, label_format, export_type):
-    """
-    Create a README.kili.txt file to give information about exported labels
-    """
-    readme_file_name = os.path.join(folder, project_id, "README.kili.txt")
-    project_info = kili.projects(
-        project_id=project_id, fields=["title", "id", "description"], disable_tqdm=True
-    )[0]
-    with open(readme_file_name, "wb") as fout:
-        fout.write("Exported Labels from KILI\n=========================\n\n".encode())
-        fout.write(f"- Project name: {project_info['title']}\n".encode())
-        fout.write(f"- Project identifier: {project_id}\n".encode())
-        fout.write(f"- Project description: {project_info['description']}\n".encode())
-        fout.write(f'- Export date: {datetime.now().strftime("%Y%m%d-%H%M%S")}\n'.encode())
-        fout.write(f"- Exported format: {label_format}\n".encode())
-        fout.write(f"- Exported labels: {export_type}\n".encode())
-
-
 def fetch_assets(
     kili,
     project_id: str,

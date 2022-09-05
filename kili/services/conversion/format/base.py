@@ -5,6 +5,7 @@ Base class for all formatters
 import os
 import shutil
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Dict, List, NamedTuple, Optional
 
 from kili.orm import AnnotationFormat, JobMLTask, JobTool
@@ -89,3 +90,20 @@ class BaseExporter(ABC):
         tool = JobTool.Rectangle
 
         return json_interface, ml_task, tool
+
+    def create_readme_kili_file(self, root_folder: str) -> None:
+        """
+        Create a README.kili.txt file to give information about exported labels
+        """
+        readme_file_name = os.path.join(root_folder, self.project_id, "README.kili.txt")
+        project_info = self.kili.projects(
+            project_id=self.project_id, fields=["title", "id", "description"], disable_tqdm=True
+        )[0]
+        with open(readme_file_name, "wb") as fout:
+            fout.write("Exported Labels from KILI\n=========================\n\n".encode())
+            fout.write(f"- Project name: {project_info['title']}\n".encode())
+            fout.write(f"- Project identifier: {self.project_id}\n".encode())
+            fout.write(f"- Project description: {project_info['description']}\n".encode())
+            fout.write(f'- Export date: {datetime.now().strftime("%Y%m%d-%H%M%S")}\n'.encode())
+            fout.write(f"- Exported format: {self.label_format}\n".encode())
+            fout.write(f"- Exported labels: {self.export_type}\n".encode())

@@ -10,7 +10,6 @@ from kili.services.conversion.format.yolo.common import (
     YoloExporter,
     get_category_full_name,
 )
-from kili.services.conversion.tools import create_readme_kili_file
 from kili.services.conversion.typing import JobCategory
 
 
@@ -35,9 +34,7 @@ class YoloSplitExporter(YoloExporter):
                 root_folder,
                 images_folder,
             )
-            create_readme_kili_file(
-                self.kili, root_folder, self.project_id, self.label_format, self.export_type
-            )
+            self.create_readme_kili_file(root_folder)
             self.make_archive(root_folder, output_filename)
 
         self.logger.warning("Done!")
