@@ -29,6 +29,8 @@ setup(
         "typing_extensions",
         "pyparsing",
         "websocket-client",
+        "ffmpeg",
+        "pydantic",
     ],
     # Taking into account MANIFEST.in
     include_package_data=True,
