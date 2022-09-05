@@ -2,81 +2,15 @@
 Helpers for the asset mutations
 """
 import csv
-import mimetypes
 import os
-
-# from json import dumps
-from pathlib import Path
-from typing import Dict, List, Union
-
-import requests
-
-from kili.constants import LARGE_IMAGE_THRESHOLD_SIZE
+from typing import Union
 
 from ...helpers import (
     check_file_mime_type,
     convert_to_list_of_none,
     format_metadata,
     is_none_or_empty,
-    is_url,
 )
-
-# def encode_object_if_not_url(content, input_type):
-#     """
-#     Return the object if it is a url, else it should be a path to a file.
-#     In that case, the file is returned as a base64 string
-#     """
-#     if is_url(content):
-#         return content
-#     if check_file_mime_type(content, input_type):
-#         return encode_base64(content)
-#     return None
-
-
-# def process_frame_json_content(json_content):
-#     """
-#     Function to process individual json_content of VIDEO projects
-#     """
-#     if is_url(json_content):
-#         return json_content
-#     json_content_index = range(len(json_content))
-#     json_content_urls = [encode_object_if_not_url(content, "IMAGE") for content in json_content]
-#     return dumps(dict(zip(json_content_index, json_content_urls)))
-
-
-# def get_file_mimetype(
-#     content_array: Union[List[str], None], json_content_array: Union[List[str], None]
-# ) -> Union[str, None]:
-#     """
-#     Returns the mimetype of the first file of the content array
-#     """
-#     if json_content_array is not None:
-#         return None
-#     if content_array is None:
-#         return None
-#     if len(content_array) > 0:
-#         first_asset = content_array[0]
-#         if is_url(first_asset):
-#             return None
-#         if not os.path.exists(first_asset):
-#             return None
-#         return mimetypes.guess_type(first_asset)[0]
-#     return None
-
-
-# def process_json_content(
-#     input_type: str,
-#     content_array: List[str],
-#     json_content_array: Union[List[str], None],
-# ):
-#     """
-#     Process the array of json_contents
-#     """
-#     if json_content_array is None:
-#         return [""] * len(content_array)
-#     if input_type in ("FRAME", "VIDEO"):
-#         return list(map(process_frame_json_content, json_content_array))
-#     return [element if is_url(element) else dumps(element) for element in json_content_array]
 
 
 def process_time_series(content: str) -> Union[str, None]:
@@ -144,90 +78,6 @@ def add_video_parameters(json_metadata, should_use_native_video):
     return {**json_metadata, "processingParameters": processing_parameters}
 
 
-# def process_metadata(
-#     input_type: str,
-#     content_array: Union[List[str], None],
-#     json_content_array: Union[List[List[Union[dict, str]]], None],
-#     json_metadata_array: Union[List[dict], None],
-# ):
-#     """
-#     Process the metadata of each asset
-#     """
-#     json_metadata_array = (
-#         [{}] * len(content_array) if json_metadata_array is None else json_metadata_array
-#     )
-#     if input_type in ("FRAME", "VIDEO"):
-#         should_use_native_video = json_content_array is None
-#         json_metadata_array = [
-#             add_video_parameters(json_metadata, should_use_native_video)
-#             for json_metadata in json_metadata_array
-#         ]
-#     return list(map(dumps, json_metadata_array))
-
-
-class DataImportProcess:
-    Synchronous = "synchronous"
-    Asynchronous = "asynchronous"
-
-
-class DataLocation:
-    Local = "local"
-    Hosted = "hosted"
-
-
-class AsynchronousUploadType:
-    GeoSatellite = "GEO_SATELLITE"
-    Video = "VIDEO"
-
-
-def split_data_index_by_upload_process(input_type, content_array, json_metadata_array) -> dict:
-    indexes_upload_process = {
-        (DataImportProcess.Synchronous, DataLocation.Local): [],
-        (DataImportProcess.Synchronous, DataLocation.Hosted): [],
-        (DataImportProcess.Asynchronous, DataLocation.Local): [],
-        (DataImportProcess.Asynchronous, DataLocation.Hosted): [],
-    }
-    for index, content in enumerate(content_array):
-        is_url_content = is_url(content)
-        is_local_file = Path(content).is_file()
-
-        is_video_into_frames = (
-            input_type
-            in (
-                "FRAME",
-                "VIDEO",
-            )
-            and not json_metadata_array[index]["processingParameters"]["shouldUseNativeVideo"]
-        )
-        if is_url_content:
-            if is_video_into_frames:
-                indexes_upload_process[DataImportProcess.Asynchronous, DataLocation.Hosted].append(
-                    index
-                )
-            else:
-                indexes_upload_process[DataImportProcess.Synchronous, DataLocation.Hosted].append(
-                    index
-                )
-        elif is_local_file:
-            is_image_tiff = (
-                input_type == "IMAGE" and mimetypes.guess_type(content)[0] == "image/tiff"
-            )
-            is_large_image = (
-                input_type == "IMAGE" and os.path.getsize(content) >= LARGE_IMAGE_THRESHOLD_SIZE
-            )
-            if is_image_tiff or is_large_image or is_video_into_frames:
-                indexes_upload_process[DataImportProcess.Asynchronous, DataLocation.Local].append(
-                    index
-                )
-            else:
-                indexes_upload_process[DataImportProcess.Synchronous, DataLocation.Local].append(
-                    index
-                )
-        else:
-            raise ValueError(f"data of index {index} is neither a url nor a local file")
-    return indexes_upload_process
-
-
 def process_update_properties_in_assets_parameters(properties) -> dict:
     """
     Process arguments of the update_properties_in_assets method
@@ -278,63 +128,3 @@ def generate_json_metadata_array(as_frames, fps, nb_files, input_type):
             }
         ] * nb_files
     return json_metadata_array
-
-
-def upload_data_via_REST(signed_urls, path_array: List[str]):
-    """Generates signed URLs for files to upload in buckets and upload data on it via REST
-    Args:
-        signed_urls: Bucket signed URLs to upload local files to
-        path_array: a list of file paths to upload
-    """
-    responses = []
-    for index, path in enumerate(path_array):
-        content_type = mimetypes.guess_type(path)[0]
-        headers = {"Content-type": content_type}
-        url_with_id = signed_urls[index]
-        url_to_use_for_upload = url_with_id.split("&id=")[0]
-        if "blob.core.windows.net" in url_to_use_for_upload:
-            headers["x-ms-blob-type"] = "BlockBlob"
-        response = requests.put(url_to_use_for_upload, data=open(path, "rb"), headers=headers)
-        if response.status_code >= 300:
-            responses.append("")
-            continue
-        responses.append(url_with_id)
-    return responses
-
-
-def get_request_payload(
-    project_id,
-    input_type,
-    is_asynchronous_upload_batch,
-    is_local_files_batch,
-    content_array_batch,
-    external_id_array_batch,
-    is_honeypot_array_batch,
-    status_array_batch,
-    json_content_array_batch,
-    json_metadata_array_batch,
-) -> Dict:
-    if is_asynchronous_upload_batch:
-        upload_type = (
-            AsynchronousUploadType.GeoSatellite
-            if input_type == "IMAGE"
-            else AsynchronousUploadType.Video
-        )
-        payload_data = {
-            "contentArray": content_array_batch,
-            "externalIDArray": external_id_array_batch,
-            "jsonMetadataArray": json_metadata_array_batch,
-            "uploadType": upload_type,
-            "isUploadingSignedUrl": is_local_files_batch,
-        }
-    else:
-        payload_data = {
-            "contentArray": content_array_batch,
-            "externalIDArray": external_id_array_batch,
-            "isHoneypotArray": is_honeypot_array_batch,
-            "statusArray": status_array_batch,
-            "jsonContentArray": json_content_array_batch,
-            "jsonMetadataArray": json_metadata_array_batch,
-            "isUploadingSignedUrl": is_local_files_batch,
-        }
-    return {"data": payload_data, "where": {"id": project_id}}
