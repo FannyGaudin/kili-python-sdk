@@ -49,7 +49,8 @@ asset_video = {
             "1": job_object_detection,
             "2": job_object_detection,
             "3": job_object_detection,
-        }
+        },
+        "author": {"firstname": "Jean-Michel", "lastname": "Durand"},
     },
     "externalId": "video_1",
     "content": "https://storage.googleapis.com/label-public-staging/video1/video1.mp4",
@@ -71,9 +72,13 @@ asset_video_frames = {
                 "2": job_object_detection,
                 "3": job_object_detection,
             },
-        ]
+        ],
+        "author": {"firstname": "Jean-Jaques", "lastname": "Dupuis"},
     },
     "externalId": "video_1",
     "content": "https://storage.googleapis.com/label-public-staging/video1/video1.mp4",
-    "jsonContent": "",
+    "jsonContent": [
+        "https://storage.googleapis.com/label-public-staging/video1/video1-img000001.jpg",
+        "https://storage.googleapis.com/label-public-staging/video1/video1-img000002.jpg",
+    ],
 }

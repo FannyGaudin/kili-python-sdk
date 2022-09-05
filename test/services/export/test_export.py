@@ -54,7 +54,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                fake_content_repository = FakeContentRepository("", False)
+                fake_content_repository = FakeContentRepository("", {}, False)
                 asset_remote_content, video_filenames = _process_asset(
                     asset_image, images_folder, labels_folder, category_ids, fake_content_repository
                 )
@@ -84,7 +84,7 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_frame_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
-                fake_content_repository = FakeContentRepository("", False)
+                fake_content_repository = FakeContentRepository("", {}, False)
                 asset_remote_content, video_filenames = _process_asset(
                     asset_video, images_folder, labels_folder, category_ids, fake_content_repository
                 )
@@ -144,7 +144,7 @@ class YoloTestCase(TestCase):
                 with open("./test/services/export/expected/data.yaml", "rb") as expected_file:
                     self.assertEqual(expected_file.read(), created_file.read())
 
-    def test_conversion_service(self):
+    def test_conversion_service_images(self):
         use_cases = [
             {
                 "export_kwargs": {
@@ -223,3 +223,97 @@ class YoloTestCase(TestCase):
                     file_tree_expected = use_case["file_tree_expected"]
 
                     assert file_tree_result == file_tree_expected
+
+    # before
+    # ---------- coverage: platform darwin, python 3.7.13-final-0 ----------
+    # Name                                               Stmts   Miss  Cover
+    # ----------------------------------------------------------------------
+    # kili/services/conversion/connect.py                    0      0   100%
+    # kili/services/conversion/format/__init__.py            0      0   100%
+    # kili/services/conversion/format/base.py               55      0   100%
+    # kili/services/conversion/format/yolo/__init__.py      17      0   100%
+    # kili/services/conversion/format/yolo/common.py       149     23    85%
+    # kili/services/conversion/format/yolo/merge.py         31      1    97%
+    # kili/services/conversion/format/yolo/split.py         34      1    97%
+    # kili/services/conversion/repository.py                30     14    53%
+    # kili/services/conversion/tools.py                     62     29    53%
+    # kili/services/conversion/typing.py                    30      0   100%
+    # kili/services/conversion/video.py                     55     41    25%
+    # ----------------------------------------------------------------------
+    # TOTAL                                                463    109    76%
+
+    # ---------- coverage: platform darwin, python 3.7.13-final-0 ----------
+    # Name                                               Stmts   Miss  Cover
+    # ----------------------------------------------------------------------
+    # kili/services/conversion/connect.py                    0      0   100%
+    # kili/services/conversion/format/__init__.py            0      0   100%
+    # kili/services/conversion/format/base.py               55      0   100%
+    # kili/services/conversion/format/yolo/__init__.py      17      0   100%
+    # kili/services/conversion/format/yolo/common.py       149     23    85%
+    # kili/services/conversion/format/yolo/merge.py         31      1    97%
+    # kili/services/conversion/format/yolo/split.py         34      1    97%
+    # kili/services/conversion/repository.py                30     14    53%
+    # kili/services/conversion/tools.py                     62     29    53%
+    # kili/services/conversion/typing.py                    30      0   100%
+    # kili/services/conversion/video.py                     55     41    25%
+    # ----------------------------------------------------------------------
+    # TOTAL                                                463    109    76%
+
+    def test_conversion_service_frames(self):
+        use_cases = [
+            {
+                "export_kwargs": {
+                    "label_format": LabelFormat.YOLO_V5,
+                    "split_option": SplitOption.SPLIT_FOLDER,
+                },
+                "file_tree_expected": {
+                    "images": {"remote_assets.csv": {}},
+                    "JOB_0": {
+                        "labels": {
+                            "car_1.txt": {},
+                        },
+                        "data.yaml": {},
+                    },
+                    "JOB_1": {"labels": {}, "data.yaml": {}},
+                    "JOB_2": {"labels": {}, "data.yaml": {}},
+                    "JOB_3": {"labels": {}, "data.yaml": {}},
+                    "README.kili.txt": {},
+                },
+            },
+        ]
+
+        for use_case in use_cases:
+            with TemporaryDirectory() as export_folder:
+                with TemporaryDirectory() as extract_folder:
+
+                    path_zipfile = Path(export_folder) / "export.zip"
+                    path_zipfile.parent.mkdir(parents=True, exist_ok=True)
+
+                    fake_kili = FakeKili()
+                    export_kwargs = {
+                        "asset_ids": [],
+                        "project_id": "video",
+                        "split_option": SplitOption.MERGED_FOLDER,
+                        "export_type": ExportType.LATEST,
+                        "output_file": str(path_zipfile),
+                        "disable_tqdm": True,
+                    }
+
+                    export_kwargs.update(use_case["export_kwargs"])
+                    export_assets(
+                        fake_kili,
+                        **export_kwargs,
+                    )
+
+                    Path(extract_folder).mkdir(parents=True, exist_ok=True)
+                    with ZipFile(path_zipfile, "r") as z_f:
+                        z_f.extractall(extract_folder)
+
+                    print(get_file_tree(extract_folder))
+
+                    # file_tree_result = get_file_tree(extract_folder)
+
+                    # file_tree_expected = use_case["file_tree_expected"]
+                    assert False
+
+                    # assert file_tree_result == file_tree_expected

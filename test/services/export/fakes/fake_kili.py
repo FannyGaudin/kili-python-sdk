@@ -2,7 +2,7 @@
 Fake Kili object
 """
 
-from test.services.export.fakes.fake_data import asset_image
+from test.services.export.fakes.fake_data import asset_image, asset_video_frames
 from typing import List, Optional
 
 
@@ -33,33 +33,34 @@ class FakeKili:
         _ = fields, label_type_in, asset_id_in, disable_tqdm
         if project_id == "1bb":
             return [asset_image]
-        else:
-            return []
+        elif project_id == "video":
+            return [asset_video_frames]
+        return []
 
     def projects(self, project_id: str, fields: List[str], disable_tqdm: bool = False):
         """
         Fake projects
         """
         _ = fields, disable_tqdm
-        if project_id == "1bb":
-            job_payload = {
-                "mlTask": "OBJECT_DETECTION",
-                "tools": ["rectangle"],
-                "instruction": "Categories",
-                "required": 1,
-                "isChild": False,
-                "content": {
-                    "categories": {
-                        "OBJECT_A": {
-                            "name": "OBJECT A",
-                        },
-                        "OBJECT_B": {
-                            "name": "OBJECT B",
-                        },
+        job_payload = {
+            "mlTask": "OBJECT_DETECTION",
+            "tools": ["rectangle"],
+            "instruction": "Categories",
+            "required": 1,
+            "isChild": False,
+            "content": {
+                "categories": {
+                    "OBJECT_A": {
+                        "name": "OBJECT A",
                     },
-                    "input": "radio",
+                    "OBJECT_B": {
+                        "name": "OBJECT B",
+                    },
                 },
-            }
+                "input": "radio",
+            },
+        }
+        if project_id == "1bb":
             json_interface = {
                 "jobs": {
                     "JOB_0": job_payload,
@@ -76,5 +77,20 @@ class FakeKili:
                     "jsonInterface": json_interface,
                 }
             ]
+        elif project_id == "video":
+            json_interface = {
+                "jobs": {
+                    "JOB_0": job_payload,
+                }
+            }
+            return [
+                {
+                    "title": "test project",
+                    "id": "video",
+                    "description": "This is a video test project",
+                    "jsonInterface": json_interface,
+                }
+            ]
+
         else:
             return []
