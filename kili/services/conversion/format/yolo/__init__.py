@@ -3,8 +3,6 @@ Functions to export a project to YOLOv4 or v5 format
 """
 
 import logging
-from abc import ABCMeta, abstractmethod
-from typing import Dict, List
 
 from kili.services.conversion.format.base import (
     BaseFormatter,
@@ -17,7 +15,7 @@ from kili.services.conversion.tools import fetch_assets
 from kili.services.conversion.typing import SplitOption
 
 
-class YoloFormatter(BaseFormatter, ABCMeta):
+class YoloFormatter(BaseFormatter):
     # pylint: disable=too-few-public-methods
 
     """
