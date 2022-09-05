@@ -27,11 +27,20 @@ class ExportParams(NamedTuple):
 
 class LoggerParams(NamedTuple):
     """
-    Contains all parameters related tologging
+    Contains all parameters related to logging.
     """
 
     user_email: Optional[str]
     disable_tqdm: bool
+
+
+class ContentRepositoryParams(NamedTuple):
+    """
+    Contains all the parameters related to the content repository.
+    """
+
+    router_endpoint: str
+    router_headers: Dict[str, str]
 
 
 class BaseFormatter(ABC):
@@ -43,7 +52,12 @@ class BaseFormatter(ABC):
 
     @staticmethod
     @abstractmethod
-    def export_project(kili, export_params: ExportParams, logger_params: LoggerParams) -> str:
+    def export_project(
+        kili,
+        export_params: ExportParams,
+        logger_params: LoggerParams,
+        content_repository_params: ContentRepositoryParams,
+    ) -> str:
         """
         Export a project to a json.
         Return the name of the exported archive file in the bucket.
@@ -55,14 +69,16 @@ class BaseExporter(ABC):
     Abstract class defining the interface for all exporters.
     """
 
-    def __init__(self, project_id, export_type, label_format, disable_tqdm, kili, logger):
-
+    def __init__(
+        self, project_id, export_type, label_format, disable_tqdm, kili, logger, content_repository
+    ):
         self.project_id = project_id
         self.export_type = export_type
         self.label_format = label_format
         self.disable_tqdm = disable_tqdm
         self.kili = kili
         self.logger = logger
+        self.content_repository = content_repository
 
     @abstractmethod
     def process_and_save(self, assets: List[Dict], output_filename: str) -> None:

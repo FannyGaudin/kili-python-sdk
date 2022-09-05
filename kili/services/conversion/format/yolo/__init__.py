@@ -6,11 +6,13 @@ import logging
 
 from kili.services.conversion.format.base import (
     BaseFormatter,
+    ContentRepositoryParams,
     ExportParams,
     LoggerParams,
 )
 from kili.services.conversion.format.yolo.merge import YoloMergeExporter
 from kili.services.conversion.format.yolo.split import YoloSplitExporter
+from kili.services.conversion.repository import SDKContentRepository
 from kili.services.conversion.tools import fetch_assets
 from kili.services.conversion.typing import SplitOption
 
@@ -23,7 +25,12 @@ class YoloFormatter(BaseFormatter):
     """
 
     @staticmethod
-    def export_project(kili, export_params: ExportParams, logger_params: LoggerParams) -> None:
+    def export_project(
+        kili,
+        export_params: ExportParams,
+        logger_params: LoggerParams,
+        content_repository_params: ContentRepositoryParams,
+    ) -> None:
         """
         Export a project to YOLO v4 or v5 format
         """
@@ -37,6 +44,11 @@ class YoloFormatter(BaseFormatter):
             label_type_in=["DEFAULT", "REVIEW"],
             disable_tqdm=logger_params.disable_tqdm,
         )
+        content_repository = SDKContentRepository(
+            content_repository_params.router_endpoint,
+            content_repository_params.router_headers,
+            verify_ssl=True,
+        )
         if export_params.split_option == SplitOption.SPLIT_FOLDER:
 
             return YoloSplitExporter(
@@ -46,6 +58,7 @@ class YoloFormatter(BaseFormatter):
                 logger_params.disable_tqdm,
                 kili,
                 logger,
+                content_repository,
             ).process_and_save(assets, export_params.output_file)
 
         return YoloMergeExporter(
@@ -55,4 +68,5 @@ class YoloFormatter(BaseFormatter):
             logger_params.disable_tqdm,
             kili,
             logger,
+            content_repository,
         ).process_and_save(assets, export_params.output_file)

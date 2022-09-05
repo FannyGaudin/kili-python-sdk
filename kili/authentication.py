@@ -36,6 +36,8 @@ class KiliAuth:
     ):
         self.session = requests.Session()
         self.client_name = client_name
+        self.api_key = api_key
+        self.api_endpoint = api_endpoint
 
         self.verify = verify
 

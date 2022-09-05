@@ -6,10 +6,18 @@ from test.services.export.fakes.fake_data import asset_image
 from typing import List, Optional
 
 
-class FakeKili(object):
+class FakeAuth:
+
+    api_key = ""
+    api_endpoint = ""
+
+
+class FakeKili:
     """
     Handke .assets and .project methods of Kili
     """
+
+    auth = FakeAuth()
 
     def assets(
         self,

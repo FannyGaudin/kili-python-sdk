@@ -10,6 +10,7 @@ from typing import Dict, List
 import ffmpeg
 import requests
 
+from kili.services.conversion.repository import AbstractContentRepository
 from kili.services.conversion.tools import get_endpoint_router_from_services
 
 
@@ -88,7 +89,9 @@ def cut_video(asset, frames, images_folder, orig_filename, leading_zeros):
                     )
 
 
-def get_content_frames_paths(asset: Dict, auth_header: Dict) -> List[str]:
+def get_content_frames_paths(
+    asset: Dict, content_repository: AbstractContentRepository
+) -> List[str]:
     """
     Get list of links to frames from the file located at asset[jsonContent]. Returns an empty list
     if `content` in the asset exists.
@@ -96,20 +99,6 @@ def get_content_frames_paths(asset: Dict, auth_header: Dict) -> List[str]:
     content_frames = []
 
     if not asset["content"] and asset["jsonContent"]:
-        json_content_link = asset["jsonContent"].replace(
-            os.getenv("ENDPOINT__ROUTER"), get_endpoint_router_from_services()
-        )
-        headers = None
-        if asset["jsonContent"].startswith(os.getenv("ENDPOINT__ROUTER")):
-            headers = {
-                "authorization": auth_header,
-            }
-        json_content_res = requests.get(
-            json_content_link, headers=headers, verify=os.getenv("KILI__VERIFY_SSL") != "False"
-        )
-        if json_content_res.ok:
-            json_content = json_content_res.json().items()
-            for _, val in json_content:
-                content_frames.append(val)
+        content_frames = content_repository.get_frames(asset["jsonContent"])
 
     return content_frames

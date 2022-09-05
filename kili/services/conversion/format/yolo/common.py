@@ -4,28 +4,14 @@ import logging
 import os
 from typing import Dict, List, Set
 
-import requests
 from tqdm.autonotebook import tqdm
 
 from kili.orm import AnnotationFormat
 from kili.services.conversion.format.base import BaseExporter
-from kili.services.conversion.tools import (
-    get_endpoint_router_from_services,
-    is_asset_served_by_kili,
-)
+from kili.services.conversion.repository import AbstractContentRepository, DownloadError
+from kili.services.conversion.tools import is_asset_served_by_kili
 from kili.services.conversion.typing import JobCategory, YoloAnnotation
 from kili.services.conversion.video import cut_video, get_content_frames_paths
-
-HEADERS = {
-    "Authorization": f"X-API-Key: {os.getenv('KILI__API_KEY')}",
-    "X-bypass-key": os.getenv("AUTHORIZATION__BYPASS_KEY"),
-}
-
-
-class DownloadError(Exception):
-    """
-    Exception thrown when the contents cannot be downloaded.
-    """
 
 
 class LabelFrames:
@@ -98,7 +84,7 @@ class YoloExporter(BaseExporter):
 
         for asset in tqdm(assets, disable=self.disable_tqdm):
             asset_remote_content, video_filenames = _process_asset(
-                asset, images_folder, labels_folder, categories_id
+                asset, images_folder, labels_folder, categories_id, self.content_repository
             )
             if video_filenames:
                 video_metadata[asset["externalId"]] = video_filenames
@@ -154,7 +140,11 @@ def get_category_full_name(job_id: str, category_name: str):
 
 
 def _process_asset(
-    asset: Dict, images_folder: str, labels_folder: str, category_ids: Dict[str, JobCategory]
+    asset: Dict,
+    images_folder: str,
+    labels_folder: str,
+    category_ids: Dict[str, JobCategory],
+    content_repository: AbstractContentRepository,
 ):
     # pylint: disable=too-many-locals, too-many-branches
     """
@@ -167,7 +157,7 @@ def _process_asset(
 
     label_frames = LabelFrames.from_asset(asset, job_ids)
 
-    content_frames = get_content_frames_paths(asset, HEADERS)
+    content_frames = get_content_frames_paths(asset, content_repository)
 
     video_filenames = []
 
@@ -190,10 +180,11 @@ def _process_asset(
             if content_frames and not label_frames.is_frame_group:
                 try:
                     _write_content_frame_to_file(
-                        content_frame, images_folder, filename, asset["id"]
+                        content_frame, images_folder, filename, content_repository
                     )
                 except DownloadError as download_error:
-                    logging.warning(str(download_error))
+                    asset_id = asset["id"]
+                    logging.warning(f"for asset {asset_id}" + str(download_error))
         else:
             asset_remote_content.append([asset["externalId"], content_frame, f"{filename}.txt"])
 
@@ -246,34 +237,14 @@ def _get_frame_labels(
 
 
 def _write_content_frame_to_file(
-    url_content_frame: str, images_folder: str, filename: str, asset_id: str
+    url_content_frame: str,
+    images_folder: str,
+    filename: str,
+    content_repository: AbstractContentRepository,
 ):
-    endpoint_router = os.getenv("ENDPOINT__ROUTER")
-    if endpoint_router is None:
-        raise ValueError("Missing ENDPOINT__ROUTER environment variable")
-    endpoint_api_v2 = os.getenv("ENDPOINT__API_V2")
-    if endpoint_api_v2 is None:
-        raise ValueError("Missing ENDPOINT__API_V2 environment variable")
-    endpoint_api_private = os.getenv("ENDPOINT__API_PRIVATE")
-    if endpoint_api_private is None:
-        raise ValueError("Missing ENDPOINT__API_PRIVATE environment variable")
-
-    url_content_frame = url_content_frame.replace(
-        endpoint_router, get_endpoint_router_from_services()
-    ).replace(endpoint_api_v2, endpoint_api_private)
-
-    response = requests.get(
-        url_content_frame,
-        stream=True,
-        headers=HEADERS,
-        verify=os.getenv("KILI__VERIFY_SSL") != "False",
-    )
-    if not response.ok:
-        # pylint: disable=logging-too-many-args
-        raise DownloadError(f"Error while downloading image {asset_id}")
-
+    content_iterator = content_repository.get_content_stream(url_content_frame, 1024)
     with open(os.path.join(images_folder, f"{filename}.jpg"), "wb") as fout:
-        for block in response.iter_content(1024):
+        for block in content_iterator:
             if not block:
                 break
             fout.write(block)

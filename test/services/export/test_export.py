@@ -3,6 +3,7 @@ import glob
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from test.services.export.fakes.fake_content_repository import FakeContentRepository
 from test.services.export.fakes.fake_data import asset_image, asset_video, category_ids
 from test.services.export.fakes.fake_kili import FakeKili
 from unittest import TestCase
@@ -53,8 +54,9 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_image_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
+                fake_content_repository = FakeContentRepository("", False)
                 asset_remote_content, video_filenames = _process_asset(
-                    asset_image, images_folder, labels_folder, category_ids
+                    asset_image, images_folder, labels_folder, category_ids, fake_content_repository
                 )
 
                 nb_files = len(
@@ -82,8 +84,9 @@ class YoloTestCase(TestCase):
     def test_process_asset_for_job_frame_not_served_by_kili(self):
         with TemporaryDirectory() as images_folder:
             with TemporaryDirectory() as labels_folder:
+                fake_content_repository = FakeContentRepository("", False)
                 asset_remote_content, video_filenames = _process_asset(
-                    asset_video, images_folder, labels_folder, category_ids
+                    asset_video, images_folder, labels_folder, category_ids, fake_content_repository
                 )
 
                 nb_files = len(
