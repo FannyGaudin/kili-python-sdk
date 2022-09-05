@@ -2,13 +2,13 @@ import csv
 import json
 import logging
 import os
-from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Set
 
 import requests
 from tqdm.autonotebook import tqdm
 
-from kili.orm import AnnotationFormat, JobMLTask, JobTool
+from kili.orm import AnnotationFormat
+from kili.services.conversion.format.base import BaseExporter
 from kili.services.conversion.tools import (
     get_endpoint_router_from_services,
     is_asset_served_by_kili,
@@ -82,33 +82,33 @@ class LabelFrames:
         return f"{self.external_id}_{str(idx + 1).zfill(self.get_leading_zeros())}"
 
 
-class YoloFormatExporter(metaclass=ABCMeta):
-    def __init__(self, project_id, export_type, label_format, disable_tqdm, kili, logger):
+class YoloExporter(BaseExporter):
+    def write_labels_into_single_folder(
+        self,
+        assets: List[Dict],
+        categories_id: Dict[str, JobCategory],
+        labels_folder: str,
+        images_folder: str,
+        base_folder: str,
+    ):
+        _write_class_file(base_folder, categories_id, self.label_format)
 
-        self.project_id = project_id
-        self.export_type = export_type
-        self.label_format = label_format
-        self.disable_tqdm = disable_tqdm
-        self.kili = kili
-        self.logger = logger
+        remote_content = []
+        video_metadata = {}
 
-    @abstractmethod
-    def process_and_save(self, assets: List[Dict], output_filename: str) -> None:
-        pass
+        for asset in tqdm(assets, disable=self.disable_tqdm):
+            asset_remote_content, video_filenames = _process_asset(
+                asset, images_folder, labels_folder, categories_id
+            )
+            if video_filenames:
+                video_metadata[asset["externalId"]] = video_filenames
+            remote_content.extend(asset_remote_content)
 
+        if video_metadata:
+            _write_video_metadata_file(video_metadata, base_folder)
 
-def get_project_and_init(kili, project_id: str):
-    """
-    Get and validate the project
-    """
-    json_interface = kili.projects(
-        project_id=project_id, fields=["jsonInterface"], disable_tqdm=True
-    )[0]["jsonInterface"]
-
-    ml_task = JobMLTask.ObjectDetection
-    tool = JobTool.Rectangle
-
-    return json_interface, ml_task, tool
+        if len(remote_content) > 0:
+            _write_remote_content_file(remote_content, images_folder)
 
 
 def _convert_from_kili_to_yolo_format(
@@ -243,35 +243,6 @@ def _get_frame_labels(
         annotations += job_annotations
 
     return annotations
-
-
-def write_labels_into_single_folder(
-    assets: List[Dict],
-    merged_categories_id: Dict[str, JobCategory],
-    labels_folder: str,
-    images_folder: str,
-    base_folder: str,
-    label_format: AnnotationFormat,
-    disable_tqdm: bool,
-):
-    _write_class_file(base_folder, merged_categories_id, label_format)
-
-    remote_content = []
-    video_metadata = {}
-
-    for asset in tqdm(assets, disable=disable_tqdm):
-        asset_remote_content, video_filenames = _process_asset(
-            asset, images_folder, labels_folder, merged_categories_id
-        )
-        if video_filenames:
-            video_metadata[asset["externalId"]] = video_filenames
-        remote_content.extend(asset_remote_content)
-
-    if video_metadata:
-        _write_video_metadata_file(video_metadata, base_folder)
-
-    if len(remote_content) > 0:
-        _write_remote_content_file(remote_content, images_folder)
 
 
 def _write_content_frame_to_file(

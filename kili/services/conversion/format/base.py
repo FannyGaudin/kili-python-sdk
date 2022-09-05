@@ -2,10 +2,12 @@
 Base class for all formatters
 """
 
+import os
+import shutil
 from abc import ABC, abstractmethod
-from typing import List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional
 
-from kili.orm import AnnotationFormat
+from kili.orm import AnnotationFormat, JobMLTask, JobTool
 from kili.services.conversion.typing import ExportType, SplitOption
 
 
@@ -45,3 +47,45 @@ class BaseFormatter(ABC):
         Export a project to a json.
         Return the name of the exported archive file in the bucket.
         """
+
+
+class BaseExporter(ABC):
+    """
+    Abstract class defining the interface for all exporters.
+    """
+
+    def __init__(self, project_id, export_type, label_format, disable_tqdm, kili, logger):
+
+        self.project_id = project_id
+        self.export_type = export_type
+        self.label_format = label_format
+        self.disable_tqdm = disable_tqdm
+        self.kili = kili
+        self.logger = logger
+
+    @abstractmethod
+    def process_and_save(self, assets: List[Dict], output_filename: str) -> None:
+        """
+        Converts the asset and save them into an archive.
+        """
+
+    def make_archive(self, root_folder: str, output_filename: str) -> None:
+        """
+        Make the export archive
+        """
+        path_folder = os.path.join(root_folder, self.project_id)
+        path_archive = shutil.make_archive(path_folder, "zip", path_folder)
+        shutil.copy(path_archive, output_filename)
+
+    def get_project_and_init(self):
+        """
+        Get and validate the project
+        """
+        json_interface = self.kili.projects(
+            project_id=self.project_id, fields=["jsonInterface"], disable_tqdm=True
+        )[0]["jsonInterface"]
+
+        ml_task = JobMLTask.ObjectDetection
+        tool = JobTool.Rectangle
+
+        return json_interface, ml_task, tool
