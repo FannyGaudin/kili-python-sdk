@@ -18,7 +18,7 @@ class YoloMergeExporter(YoloExporter):
     """
 
     def process_and_save(self, assets: List[Dict], output_filename: str) -> None:
-        self.logger.warning("Exporting to yolo format merged...")
+        self.logger.logger.warning("Exporting to yolo format merged...")
         json_interface, ml_task, tool = self.get_project_and_init()
         merged_categories_id = self._get_merged_categories(json_interface, ml_task, tool)
 
@@ -38,7 +38,7 @@ class YoloMergeExporter(YoloExporter):
             self.create_readme_kili_file(root_folder)
             self.make_archive(root_folder, output_filename)
 
-        self.logger.warning("Done!")
+        self.logger.logger.warning("Done!")
 
     @classmethod
     def _get_merged_categories(

@@ -10,9 +10,12 @@ from kili.services.conversion.format.base import (
     LoggerParams,
 )
 from kili.services.conversion.format.yolo import YoloFormatter
+from kili.services.conversion.logger import SDKLogger
+from kili.services.conversion.repository import SDKContentRepository
 from kili.services.conversion.typing import ExportType, LabelFormat, SplitOption
 
 
+@inject
 def export_assets(  # pylint: disable=too-many-arguments
     kili,
     asset_ids: Optional[List[str]],
@@ -36,22 +39,22 @@ def export_assets(  # pylint: disable=too-many-arguments
         output_file=output_file,
     )
 
-    logger_params = LoggerParams(
-        disable_tqdm=disable_tqdm,
-        user_email=None,
-    )
+    logger = SDKLogger(disable_tqdm, {"name": "kili.services.export_assets"})
 
-    content_repository_params = ContentRepositoryParams(
+    content_repository = SDKContentRepository(
         router_endpoint=kili.auth.api_endpoint,
         router_headers={
             "Authorization": f"X-API-Key: {kili.auth.api_key}",
         },
+        verify_ssl=True,
     )
+
+    container = Container()
 
     # if label_format in [LabelFormat.RAW, LabelFormat.SIMPLE]:
     # return KiliFormatter.export_project(export_params, request_params)
     if label_format in [LabelFormat.YOLO_V4, LabelFormat.YOLO_V5]:
-        YoloFormatter.export_project(kili, export_params, logger_params, content_repository_params)
+        YoloFormatter.export_project(kili, export_params, logger, content_repository)
     # if label_format in [LabelFormat.PASCAL_VOC]:
     #     return VocFormatter.export_project(export_params, request_params)
     # raise Exception('Case not handled')

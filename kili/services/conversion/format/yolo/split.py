@@ -20,7 +20,7 @@ class YoloSplitExporter(YoloExporter):
 
     def process_and_save(self, assets: List[Dict], output_filename: str) -> None:
 
-        self.logger.warning("Exporting to yolo format split...")
+        self.logger.logger.warning("Exporting to yolo format split...")
 
         json_interface, ml_task, tool = self.get_project_and_init()
         categories_by_job = self._get_categories_by_job(json_interface, ml_task, tool)
@@ -37,7 +37,7 @@ class YoloSplitExporter(YoloExporter):
             self.create_readme_kili_file(root_folder)
             self.make_archive(root_folder, output_filename)
 
-        self.logger.warning("Done!")
+        self.logger.logger.warning("Done!")
 
     @classmethod
     def _get_categories_by_job(

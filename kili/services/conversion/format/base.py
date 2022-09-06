@@ -8,7 +8,12 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Dict, List, NamedTuple, Optional
 
+from dependency_injector.wiring import Provide, inject
+
 from kili.orm import AnnotationFormat, JobMLTask, JobTool
+from kili.services.conversion.containers import Container, Service
+from kili.services.conversion.logger import AbstractLogger
+from kili.services.conversion.repository import AbstractContentRepository
 from kili.services.conversion.typing import ExportType, SplitOption
 
 
@@ -43,6 +48,28 @@ class ContentRepositoryParams(NamedTuple):
     router_headers: Dict[str, str]
 
 
+# class BaseFormatter(ABC):
+#     # pylint: disable=too-few-public-methods
+
+#     """
+#     Abstract class defining a standard signature for all formatters
+#     """
+
+#     @staticmethod
+#     @abstractmethod
+#     def export_project(
+#         kili,
+#         export_params: ExportParams,
+#         logger: AbstractLogger,
+#         content_repository: AbstractContentRepository,
+#     ) -> str:
+#         """
+#         Export a project to a json.
+#         Return the name of the exported archive file in the bucket.
+#         """
+
+
+
 class BaseFormatter(ABC):
     # pylint: disable=too-few-public-methods
 
@@ -53,10 +80,7 @@ class BaseFormatter(ABC):
     @staticmethod
     @abstractmethod
     def export_project(
-        kili,
-        export_params: ExportParams,
-        logger_params: LoggerParams,
-        content_repository_params: ContentRepositoryParams,
+       service: Service = Provide[Container.service] -> None
     ) -> str:
         """
         Export a project to a json.
@@ -70,12 +94,11 @@ class BaseExporter(ABC):
     """
 
     def __init__(
-        self, project_id, export_type, label_format, disable_tqdm, kili, logger, content_repository
+        self, project_id: str, export_type: ExportType, label_format: AnnotationFormat, kili, logger: AbstractLogger, content_repository: AbstractContentRepository
     ):
         self.project_id = project_id
         self.export_type = export_type
         self.label_format = label_format
-        self.disable_tqdm = disable_tqdm
         self.kili = kili
         self.logger = logger
         self.content_repository = content_repository
