@@ -22,7 +22,7 @@ from kili.enums import (
 )
 
 
-class License(TypedDict):
+class License(TypedDict, total=False):
     """
     A Wrapper for License GraphQL object.
     """
@@ -40,7 +40,7 @@ class License(TypedDict):
     organizationId: int
 
 
-class OrganizationWithoutUser(TypedDict):
+class OrganizationWithoutUser(TypedDict, total=False):
     """
     A wrapper for Organization GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -59,7 +59,7 @@ class OrganizationWithoutUser(TypedDict):
     zipCode: str
 
 
-class UserWithoutProjectUsers(TypedDict):
+class UserWithoutProjectUsers(TypedDict, total=False):
     """
     A wrapper for User GraphQL object.
     """
@@ -77,7 +77,7 @@ class UserWithoutProjectUsers(TypedDict):
     updatedAt: str
 
 
-class Organization(OrganizationWithoutUser):
+class Organization(OrganizationWithoutUser, total=False):
     """
     A wrapper for Organization GraphQL object.
     """
@@ -85,7 +85,7 @@ class Organization(OrganizationWithoutUser):
     users: UserWithoutProjectUsers
 
 
-class ProjectUserWithoutProject(TypedDict):
+class ProjectUserWithoutProject(TypedDict, total=False):
     """
     A wrapper for ProjectUser GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -114,7 +114,7 @@ class ProjectUserWithoutProject(TypedDict):
     user: UserWithoutProjectUsers
 
 
-class ProjectWithoutDataset(TypedDict):
+class ProjectWithoutDataset(TypedDict, total=False):
     """
     A wrapper for Project GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -126,6 +126,7 @@ class ProjectWithoutDataset(TypedDict):
     author: UserWithoutProjectUsers
     consensusMark: float
     consensusMarkPerCateg: int
+    consensusTotCoverage: float
     createdAt: str
     description: str
     honeypotMark: float
@@ -155,7 +156,7 @@ class ProjectWithoutDataset(TypedDict):
     useHoneyPot: bool
 
 
-class ProjectUser(ProjectUserWithoutProject):
+class ProjectUser(ProjectUserWithoutProject, total=False):
     """
     A wrapper for ProjectUser GraphQL object.
     """
@@ -163,7 +164,7 @@ class ProjectUser(ProjectUserWithoutProject):
     project: ProjectWithoutDataset
 
 
-class UserWithoutApiKey(UserWithoutProjectUsers):
+class UserWithoutApiKey(UserWithoutProjectUsers, total=False):
     """
     A wrapper for User GraphQL object.
     """
@@ -171,7 +172,7 @@ class UserWithoutApiKey(UserWithoutProjectUsers):
     projectUsers: ProjectUser
 
 
-class ApiKey(TypedDict):
+class ApiKey(TypedDict, total=False):
     """
     A wrapper for ApiKey GraphQL object.
     """
@@ -185,7 +186,7 @@ class ApiKey(TypedDict):
     userId: str
 
 
-class User(UserWithoutApiKey):
+class User(UserWithoutApiKey, total=False):
     """
     A wrapper for User GraphQL object.
     """
@@ -193,7 +194,7 @@ class User(UserWithoutApiKey):
     apiKeys: ApiKey
 
 
-class LabelWithoutLabelOf(TypedDict):
+class LabelWithoutLabelOf(TypedDict, total=False):
     """
     A wrapper for Label GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -227,7 +228,7 @@ class LabelWithoutLabelOf(TypedDict):
     totalSecondsToLabelCompute: float
 
 
-class Lock(TypedDict):
+class Lock(TypedDict, total=False):
     """
     A wrapper for Lock GraphQL object.
     """
@@ -240,7 +241,7 @@ class Lock(TypedDict):
     lockOfIdCompute: str
 
 
-class CommentsWithoutCommentsOf(TypedDict):
+class CommentsWithoutCommentsOf(TypedDict, total=False):
     """
     A wrapper for Comment GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -253,7 +254,7 @@ class CommentsWithoutCommentsOf(TypedDict):
     updatedAt: str
 
 
-class CommentWithoutIssue(TypedDict):
+class CommentWithoutIssue(TypedDict, total=False):
     """
     A wrapper for Comment GraphQL object.
     """
@@ -267,7 +268,7 @@ class CommentWithoutIssue(TypedDict):
     updatedAt: str
 
 
-class IssueWithoutAsset(TypedDict):
+class IssueWithoutAsset(TypedDict, total=False):
     """
     A wrapper for Issue GraphQL object.
     Defined in two steps to avoid cyclical dependencies.
@@ -291,7 +292,7 @@ class IssueWithoutAsset(TypedDict):
     updatedAt: str
 
 
-class Asset(TypedDict):
+class Asset(TypedDict, total=False):
     """
     A wrapper for Asset GraphQL object.
     """
@@ -340,7 +341,7 @@ class Asset(TypedDict):
     updatedAt: str
 
 
-class Label(LabelWithoutLabelOf):
+class Label(LabelWithoutLabelOf, total=False):
     """
     A wrapper for Label GraphQL object.
     """
@@ -348,7 +349,7 @@ class Label(LabelWithoutLabelOf):
     labelOf: Asset
 
 
-class Project(ProjectWithoutDataset):
+class Project(ProjectWithoutDataset, total=False):
     """
     A wrapper for Project GraphQL object.
     """
@@ -356,7 +357,7 @@ class Project(ProjectWithoutDataset):
     dataset: Asset
 
 
-class Notification(TypedDict):
+class Notification(TypedDict, total=False):
     """
     A wrapper for Notification GraphQL object.
     """
@@ -370,7 +371,7 @@ class Notification(TypedDict):
     userID: str
 
 
-class ProjectVersion(TypedDict):
+class ProjectVersion(TypedDict, total=False):
     """
     A wrapper for ProjectVersion GraphQL object.
     """
@@ -383,7 +384,7 @@ class ProjectVersion(TypedDict):
     projectId: str
 
 
-class Issue(IssueWithoutAsset):
+class Issue(IssueWithoutAsset, total=False):
     """
     A wrapper for Issue GraphQL object.
     """
@@ -391,7 +392,7 @@ class Issue(IssueWithoutAsset):
     asset: Asset
 
 
-class Comment(CommentWithoutIssue):
+class Comment(CommentWithoutIssue, total=False):
     """
     A wrapper for Comment GraphQL object.
     """
