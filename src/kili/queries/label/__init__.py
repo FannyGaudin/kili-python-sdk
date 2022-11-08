@@ -12,9 +12,11 @@ from kili.graphql import QueryOptions
 from kili.graphql.operations.asset.queries import AssetQuery, AssetWhere
 from kili.graphql.operations.label.queries import LabelQuery, LabelWhere
 from kili.helpers import disable_tqdm_if_as_generator, validate_category_search_query
+from kili.queries.project import QueriesProject
 from kili.services.export.exceptions import NoCompatibleJobError
 from kili.services.export.types import CocoAnnotationModifier, LabelFormat, SplitOption
 from kili.services.helpers import infer_ids_from_external_ids
+from kili.services.label_response import Response
 from kili.services.types import ProjectId
 from kili.utils.logcontext import for_all_methods, log_call
 
@@ -713,3 +715,27 @@ class QueriesLabel:
             )
         except NoCompatibleJobError as excp:
             print(str(excp))
+
+    def label_response(self, label_id: str, project_id: str):
+        """
+        Get the response from a label as a python class
+
+        Args:
+            label_id: id from the label.
+
+        !!! Example
+            ```
+            from kili.client import Kili
+            kili = Kili()
+            project.label_response(label_id="my_label_id")
+            ```
+        """
+        json_response = self.labels(
+            project_id=project_id, label_id=label_id, fields=["jsonResponse"]
+        )[0]["jsonResponse"]
+
+        project = QueriesProject(self.auth).projects(
+            project_id=project_id, fields=["inputType", "jsonInterface"]
+        )[0]
+
+        return Response(json_response, project["jsonInterface"], project["inputType"])

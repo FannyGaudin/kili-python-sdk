@@ -1,5 +1,5 @@
 """
-Constants for the asset_import services
+Constants for the asset_import service
 """
 
 mime_extensions = {
