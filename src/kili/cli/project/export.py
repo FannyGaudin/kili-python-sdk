@@ -86,6 +86,9 @@ def export_labels(
         For such exports, please use the Kili UI.
     """
     kili = get_kili_client(api_key=api_key, api_endpoint=endpoint)
+    # disable_tqdm: bool,
+    # log_level: LogLevel,
+    logger = 
 
     try:
         services.export_labels(

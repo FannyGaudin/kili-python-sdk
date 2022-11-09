@@ -130,11 +130,7 @@ class BaseExporter(ABC):  # pylint: disable=too-many-instance-attributes
             fout.write(f"- Exported format: {self.label_format}\n".encode())
             fout.write(f"- Exported labels: {self.export_type}\n".encode())
 
-    def export_project(
-        self,
-        export_params: ExportParams,
-        logger_params: LoggerParams,
-    ) -> None:
+    def export_project(self, export_params: ExportParams) -> None:
         """
         Export a project to a json.
         Return the name of the exported archive file in the bucket.
@@ -143,11 +139,11 @@ class BaseExporter(ABC):  # pylint: disable=too-many-instance-attributes
         self.logger.warning("Fetching assets...")
         assets = fetch_assets(
             self.kili,
-            project_id=export_params.project_id,
+            project_id=self.project_id,
             asset_ids=export_params.assets_ids,
-            export_type=export_params.export_type,
+            export_type=self.export_type,
             label_type_in=["DEFAULT", "REVIEW"],
-            disable_tqdm=logger_params.disable_tqdm,
+            disable_tqdm=self.disable_tqdm,
             download_media=self.download_media,
         )
         self.process_and_save(assets, export_params.output_file)

@@ -3,6 +3,9 @@
 from typing import List, Optional
 
 from typing_extensions import get_args
+from logging import LoggerAdapter
+from kili.services.export.repository import AbstractContentRepository
+
 
 from kili.exceptions import NotFound
 from kili.services.export.format.base import (
@@ -17,8 +20,8 @@ from kili.services.export.types import ExportType, LabelFormat, SplitOption
 from kili.services.types import LogLevel, ProjectId
 
 
+
 def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
-    kili,
     asset_ids: Optional[List[str]],
     project_id: ProjectId,
     export_type: ExportType,
@@ -26,8 +29,9 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
     split_option: SplitOption,
     single_file: bool,
     output_file: str,
-    disable_tqdm: bool,
-    log_level: LogLevel,
+    logger: LoggerAdapter,
+    content_repository: AbstractContentRepository,
+    kili
 ) -> None:
     """
     Export the selected assets into the required format, and save it into a file archive.
@@ -45,17 +49,17 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
         output_file=output_file,
     )
 
-    logger_params = LoggerParams(
-        disable_tqdm=disable_tqdm,
-        level=log_level,
-    )
+    # logger_params = LoggerParams(
+    #     disable_tqdm=disable_tqdm,
+    #     level=log_level,
+    # )
 
-    content_repository_params = ContentRepositoryParams(
-        router_endpoint=kili.auth.api_endpoint,
-        router_headers={
-            "Authorization": f"X-API-Key: {kili.auth.api_key}",
-        },
-    )
+    # content_repository_params = ContentRepositoryParams(
+    #     router_endpoint=kili.auth.api_endpoint,
+    #     router_headers={
+    #         "Authorization": f"X-API-Key: {kili.auth.api_key}",
+    #     },
+    # )
 
     if label_format in get_args(LabelFormat):
         format_exporter_selector_mapping = {
@@ -70,8 +74,8 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
         )  # ensures full mapping
         exporter_selector = format_exporter_selector_mapping[label_format]
         exporter = exporter_selector.init_exporter(
-            kili, logger_params, export_params, content_repository_params
+            export_params, logger, content_repository, kili
         )
-        exporter.export_project(export_params, logger_params)
+        exporter.export_project(export_params)
     else:
         raise ValueError(f'Label format "{label_format}" is not implemented or does not exist.')
