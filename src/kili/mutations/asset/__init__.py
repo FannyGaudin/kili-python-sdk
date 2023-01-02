@@ -297,6 +297,9 @@ class MutationsAsset:
     def send_back_to_queue(self, asset_ids: List[str]) -> Dict[str, str]:
         """Send assets back to queue.
 
+        The assets sent back to the queue will be sent to
+        the last annotator having labeled the asset.
+
         Args:
             asset_ids: The IDs of the assets to send back to queue.
 
