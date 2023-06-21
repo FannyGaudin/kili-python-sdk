@@ -44,10 +44,10 @@ Let's download some dicom images:
 
 ```python
 wget.download(
-    "https://github.com/kili-technology/kili-python-sdk/blob/master/recipes/datasets/0000a175-0e68-4ca4-b1af-167204a7e0bc.dcm?raw=true"
+    "https://github.com/kili-technology/kili-python-sdk/blob/main/recipes/datasets/0000a175-0e68-4ca4-b1af-167204a7e0bc.dcm?raw=true"
 )
 wget.download(
-    "https://github.com/kili-technology/kili-python-sdk/blob/master/recipes/datasets/0005d3cc-3c3f-40b9-93c3-46231c3eb813.dcm?raw=true"
+    "https://github.com/kili-technology/kili-python-sdk/blob/main/recipes/datasets/0005d3cc-3c3f-40b9-93c3-46231c3eb813.dcm?raw=true"
 )
 
 data_folder = Path(".")
@@ -197,7 +197,7 @@ In this tutorial, we assume that our labels have already been downloaded and sto
 
 ```python
 wget.download(
-    "https://github.com/kili-technology/kili-python-sdk/blob/master/recipes/conf/medical-labels.pkl?raw=true"
+    "https://github.com/kili-technology/kili-python-sdk/blob/main/recipes/conf/medical-labels.pkl?raw=true"
 )
 
 with open("medical-labels.pkl", "rb") as f:
