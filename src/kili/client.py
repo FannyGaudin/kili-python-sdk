@@ -1,4 +1,5 @@
 """This script permits to initialize the Kili Python SDK client."""
+from dataclasses import dataclass
 import os
 import warnings
 from datetime import datetime, timedelta
@@ -38,6 +39,14 @@ from kili.exceptions import AuthenticationFailed, UserNotFoundError
 from kili.internal import KiliInternal
 
 warnings.filterwarnings("default", module="kili", category=DeprecationWarning)
+
+
+@dataclass
+class APIAuthInfo:
+    """API authentication information."""
+
+    endpoint: str
+    key: str
 
 
 class Kili(  # pylint: disable=too-many-ancestors
@@ -113,12 +122,11 @@ class Kili(  # pylint: disable=too-many-ancestors
                 "KILI_API_ENDPOINT",
                 "https://cloud.kili-technology.com/api/label/v2/graphql",
             )
+        self.api_auth_info = APIAuthInfo(endpoint=api_endpoint, key=api_key)
 
         if api_key is None:
             raise AuthenticationFailed(api_key, api_endpoint)
 
-        self.api_key = api_key
-        self.api_endpoint = api_endpoint
         self.verify = verify
         self.client_name = client_name
         self.graphql_client_params = graphql_client_params
@@ -144,12 +152,12 @@ class Kili(  # pylint: disable=too-many-ancestors
     def _check_api_key_valid(self) -> None:
         """Check that the api_key provided is valid."""
         response = requests.post(
-            url=self.api_endpoint,
+            url=self.api_auth_info.endpoint,
             data='{"query":"{ me { id email } }"}',
             verify=self.verify,
             timeout=30,
             headers={
-                "Authorization": f"X-API-Key: {self.api_key}",
+                "Authorization": f"X-API-Key: {self.api_auth_info.key}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
                 "apollographql-client-name": self.client_name.value,
@@ -160,8 +168,8 @@ class Kili(  # pylint: disable=too-many-ancestors
             return
 
         raise AuthenticationFailed(
-            api_key=self.api_key,
-            api_endpoint=self.api_endpoint,
+            api_key=self.api_auth_info.key,
+            api_endpoint=self.api_auth_info.endpoint,
             error_msg=(
                 "Cannot check API key validity: status_code"
                 f" {response.status_code}\n\n{response.text}"
@@ -174,7 +182,7 @@ class Kili(  # pylint: disable=too-many-ancestors
 
         api_keys = APIKeyQuery(self.graphql_client)(
             fields=["expiryDate"],
-            where=APIKeyWhere(api_key=self.api_key),
+            where=APIKeyWhere(api_key=self.api_auth_info.key),
             options=QueryOptions(disable_tqdm=True),
         )
 

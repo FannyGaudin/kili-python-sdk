@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Type
 
 from typing_extensions import get_args
+from kili.client import APIAuthInfo
+from kili.core.graphql.graphql_client import GraphQLClient
 
 from kili.services.export.format.base import AbstractExporter, ExportParams
 from kili.services.export.format.coco import CocoExporter
@@ -23,7 +25,6 @@ from kili.services.types import LogLevel, ProjectId
 
 
 def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
-    kili,
     asset_ids: Optional[List[str]],
     project_id: ProjectId,
     export_type: ExportType,
@@ -37,9 +38,11 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
     annotation_modifier: Optional[CocoAnnotationModifier],
     asset_filter_kwargs: Optional[Dict[str, object]],
     normalized_coordinates: Optional[bool],
+    graphql_client: GraphQLClient,
+    auth_info: APIAuthInfo,
 ) -> None:
     """Export the selected assets into the required format, and save it into a file archive."""
-    get_project(kili, project_id, ["id"])
+    get_project(project_id, ["id"], graphql_client)
 
     export_params = ExportParams(
         assets_ids=asset_ids,
@@ -58,9 +61,9 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
     logger = get_logger(log_level)
 
     content_repository = SDKContentRepository(
-        kili.api_endpoint,
+        auth_info.endpoint,
         router_headers={
-            "Authorization": f"X-API-Key: {kili.api_key}",
+            "Authorization": f"X-API-Key: {auth_info.key}",
         },
         verify_ssl=True,
     )
@@ -80,7 +83,7 @@ def export_labels(  # pylint: disable=too-many-arguments, too-many-locals
         )  # ensures full mapping
         exporter_class = format_exporter_selector_mapping[label_format]
         exporter_class(
-            export_params, kili, logger, disable_tqdm, content_repository
+            export_params, logger, disable_tqdm, content_repository
         ).export_project()
     else:
         raise ValueError(f'Label format "{label_format}" is not implemented or does not exist.')
