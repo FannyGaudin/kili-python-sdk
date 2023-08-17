@@ -19,10 +19,7 @@ from kili.entrypoints.mutations.label.queries import (
     GQL_UPDATE_PROPERTIES_IN_LABEL,
 )
 from kili.orm import Label
-from kili.services.helpers import (
-    assert_all_arrays_have_same_size,
-    infer_ids_from_external_ids,
-)
+from kili.services.helpers import assert_all_arrays_have_same_size
 from kili.services.types import LabelType
 from kili.utils.logcontext import for_all_methods, log_call
 
@@ -164,10 +161,9 @@ class MutationsLabel(BaseOperationEntrypointMixin):
             [label_asset_external_id] if label_asset_external_id else None,
         )
         if label_asset_id is None:
-            assert label_asset_external_id and project_id
-            label_asset_id = infer_ids_from_external_ids(
-                self, [label_asset_external_id], project_id
-            )[label_asset_external_id]
+            where = {"id": label_asset_id}
+        else:
+            where = {"externalId": label_asset_external_id, "project": {"id": project_id}}
         variables = {
             "data": {
                 "authorID": author_id,
@@ -175,7 +171,7 @@ class MutationsLabel(BaseOperationEntrypointMixin):
                 "labelType": label_type,
                 "secondsToLabel": seconds_to_label,
             },
-            "where": {"id": label_asset_id},
+            "where": where,
         }
         result = self.graphql_client.execute(GQL_APPEND_TO_LABELS, variables)
         return self.format_result("data", result, Label)
@@ -312,19 +308,21 @@ class MutationsLabel(BaseOperationEntrypointMixin):
         Returns:
             A dictionary-like object representing the created label.
         """
-        if asset_id is None:
-            if asset_external_id is None or project_id is None:
-                raise ValueError(
-                    "Either provide `asset_id` or `asset_external_id` and `project_id`."
-                )
-            asset_id = infer_ids_from_external_ids(self, [asset_external_id], project_id)[
-                asset_external_id
-            ]
-
-        variables = {
-            "data": {"jsonResponse": dumps(json_response)},
-            "where": {"id": asset_id},
-        }
+        check_asset_identifier_arguments(
+            project_id,
+            [asset_id] if asset_id else None,
+            [asset_external_id] if asset_external_id else None,
+        )
+        if asset_id is not None:
+            variables = {
+                "data": {"jsonResponse": dumps(json_response)},
+                "where": {"id": asset_id},
+            }
+        else:
+            variables = {
+                "data": {"jsonResponse": dumps(json_response)},
+                "where": {"externalId": asset_external_id, "project": {"id": project_id}},
+            }
         result = self.graphql_client.execute(GQL_CREATE_HONEYPOT, variables)
         return self.format_result("data", result, Label)
 

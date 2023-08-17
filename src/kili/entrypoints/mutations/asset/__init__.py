@@ -21,6 +21,7 @@ from kili.entrypoints.mutations.asset.queries import (
     GQL_SEND_BACK_ASSETS_TO_QUEUE,
     GQL_UPDATE_PROPERTIES_IN_ASSETS,
 )
+from kili.entrypoints.mutations.helpers import check_asset_identifier_arguments
 from kili.exceptions import MissingArgumentError
 from kili.orm import Asset
 from kili.services.asset_import import import_assets
@@ -390,12 +391,23 @@ class MutationsAsset(BaseOperationEntrypointMixin):
         ) or is_empty_list_with_warning("delete_many_from_dataset", "external_ids", external_ids):
             return None
 
-        asset_ids = get_asset_ids_or_throw_error(self, asset_ids, external_ids, project_id)
+        check_asset_identifier_arguments(project_id, asset_ids, external_ids)
 
-        properties_to_batch: Dict[str, Optional[List[Any]]] = {"asset_ids": asset_ids}
+        properties_to_batch: Dict[str, Optional[List[Any]]] = {
+            "asset_ids": asset_ids,
+            "external_ids": external_ids,
+        }
 
         def generate_variables(batch):
-            return {"where": {"idIn": batch["asset_ids"]}}
+            if batch.get("asset_ids") is not None:
+                return {"where": {"idIn": batch["asset_ids"]}}
+            else:
+                return {
+                    "where": {
+                        "externalIdStrictlyIn": batch["external_ids"],
+                        "project": {"id": project_id},
+                    }
+                }
 
         @retry(
             wait=wait_exponential(multiplier=1, min=1, max=8),
@@ -403,14 +415,25 @@ class MutationsAsset(BaseOperationEntrypointMixin):
             reraise=True,
         )
         def verify_last_batch(last_batch: Dict, results: List):
-            """Check that all assets in the last batch have been deleted."""
-            asset_ids = last_batch["asset_ids"][-1:]  # check last asset of the batch only
-            nb_assets_in_kili = AssetQuery(self.graphql_client, self.http_client).count(
-                AssetWhere(
-                    project_id=results[0]["data"]["id"],
-                    asset_id_in=asset_ids,
+            """Check that the last asset in the last batch has been deleted."""
+            project_id = results[0]["data"]["id"]
+            asset_ids = last_batch.get("asset_ids")
+            external_ids = last_batch.get("external_ids")
+            if asset_ids is not None:
+                nb_assets_in_kili = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        asset_id=asset_ids[-1],
+                    )
                 )
-            )
+            else:
+                assert external_ids
+                nb_assets_in_kili = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        external_id_strictly_in=external_ids[-1:],
+                    )
+                )
             if nb_assets_in_kili > 0:
                 raise MutationError("Failed to delete some assets.")
 
@@ -458,12 +481,23 @@ class MutationsAsset(BaseOperationEntrypointMixin):
         ) or is_empty_list_with_warning("add_to_review", "external_ids", external_ids):
             return None
 
-        asset_ids = get_asset_ids_or_throw_error(self, asset_ids, external_ids, project_id)
+        check_asset_identifier_arguments(project_id, asset_ids, external_ids)
 
-        properties_to_batch: Dict[str, Optional[List[Any]]] = {"asset_ids": asset_ids}
+        properties_to_batch: Dict[str, Optional[List[Any]]] = {
+            "asset_ids": asset_ids,
+            "external_ids": external_ids,
+        }
 
         def generate_variables(batch):
-            return {"where": {"idIn": batch["asset_ids"]}}
+            if batch.get("asset_ids") is not None:
+                return {"where": {"idIn": batch["asset_ids"]}}
+            else:
+                return {
+                    "where": {
+                        "externalIdStrictlyIn": batch["external_ids"],
+                        "project": {"id": project_id},
+                    }
+                }
 
         @retry(
             wait=wait_exponential(multiplier=1, min=1, max=8),
@@ -471,20 +505,31 @@ class MutationsAsset(BaseOperationEntrypointMixin):
             reraise=True,
         )
         def verify_last_batch(last_batch: Dict, results: List):
-            """Check that all assets in the last batch have been sent to review."""
+            """Check that the last asset in the last batch has been sent to review."""
             try:
                 project_id = results[0]["data"]["id"]
             except TypeError:
                 return  # No assets have changed status
-            asset_ids = last_batch["asset_ids"][-1:]  # check last asset of the batch only
-            nb_assets_in_review = AssetQuery(self.graphql_client, self.http_client).count(
-                AssetWhere(
-                    project_id=project_id,
-                    asset_id_in=asset_ids,
-                    status_in=["TO_REVIEW"],
+            asset_ids = last_batch.get("asset_ids")
+            external_ids = last_batch.get("external_ids")
+            if asset_ids is not None:
+                nb_assets_in_review = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        asset_id=asset_ids[-1],
+                        status_in=["TO_REVIEW"],
+                    )
                 )
-            )
-            if len(asset_ids) != nb_assets_in_review:
+            else:
+                assert external_ids
+                nb_assets_in_review = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        external_id_strictly_in=external_ids[-1:],
+                        status_in=["TO_REVIEW"],
+                    )
+                )
+            if nb_assets_in_review != 1:
                 raise MutationError("Failed to send some assets to review")
 
         results = _mutate_from_paginated_call(
@@ -498,11 +543,24 @@ class MutationsAsset(BaseOperationEntrypointMixin):
         # unlike send_back_to_queue, the add_to_review mutation doesn't always return the project ID
         # it happens when no assets have been sent to review
         if isinstance(result, dict) and "id" in result:
-            assets_in_review = AssetQuery(self.graphql_client, self.http_client)(
-                AssetWhere(project_id=result["id"], asset_id_in=asset_ids, status_in=["TO_REVIEW"]),
-                ["id"],
-                QueryOptions(disable_tqdm=True),
-            )
+            if asset_ids:
+                assets_in_review = AssetQuery(self.graphql_client, self.http_client)(
+                    AssetWhere(
+                        project_id=result["id"], asset_id_in=asset_ids, status_in=["TO_REVIEW"]
+                    ),
+                    ["id"],
+                    QueryOptions(disable_tqdm=True),
+                )
+            else:
+                assets_in_review = AssetQuery(self.graphql_client, self.http_client)(
+                    AssetWhere(
+                        project_id=result["id"],
+                        external_id_strictly_in=external_ids,
+                        status_in=["TO_REVIEW"],
+                    ),
+                    ["id"],
+                    QueryOptions(disable_tqdm=True),
+                )
             result["asset_ids"] = [asset["id"] for asset in assets_in_review]
             return result
         return result
@@ -538,12 +596,23 @@ class MutationsAsset(BaseOperationEntrypointMixin):
         ) or is_empty_list_with_warning("send_back_to_queue", "external_ids", external_ids):
             return None
 
-        asset_ids = get_asset_ids_or_throw_error(self, asset_ids, external_ids, project_id)
+        check_asset_identifier_arguments(project_id, asset_ids, external_ids)
 
-        properties_to_batch: Dict[str, Optional[List[Any]]] = {"asset_ids": asset_ids}
+        properties_to_batch: Dict[str, Optional[List[Any]]] = {
+            "asset_ids": asset_ids,
+            "external_ids": external_ids,
+        }
 
         def generate_variables(batch):
-            return {"where": {"idIn": batch["asset_ids"]}}
+            if batch.get("asset_ids") is not None:
+                return {"where": {"idIn": batch["asset_ids"]}}
+            else:
+                return {
+                    "where": {
+                        "externalIdStrictlyIn": batch["external_ids"],
+                        "project": {"id": project_id},
+                    }
+                }
 
         @retry(
             wait=wait_exponential(multiplier=1, min=1, max=8),
@@ -551,16 +620,32 @@ class MutationsAsset(BaseOperationEntrypointMixin):
             reraise=True,
         )
         def verify_last_batch(last_batch: Dict, results: List):
-            """Check that all assets in the last batch have been sent back to queue."""
-            asset_ids = last_batch["asset_ids"][-1:]  # check last asset of the batch only
-            nb_assets_in_queue = AssetQuery(self.graphql_client, self.http_client).count(
-                AssetWhere(
-                    project_id=results[0]["data"]["id"],
-                    asset_id_in=asset_ids,
-                    status_in=["ONGOING"],
+            """Check that the last asset in the last batch has been sent back to queue."""
+            try:
+                project_id = results[0]["data"]["id"]
+            except TypeError:
+                return  # No assets have changed status
+            asset_ids = last_batch.get("asset_ids")
+            external_ids = last_batch.get("external_ids")
+            if asset_ids is not None:
+                nb_assets_in_queue = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        asset_id=asset_ids[-1],
+                        status_in=["ONGOING"],
+                    )
                 )
-            )
-            if len(asset_ids) != nb_assets_in_queue:
+            else:
+                assert external_ids
+                nb_assets_in_queue = AssetQuery(self.graphql_client, self.http_client).count(
+                    AssetWhere(
+                        project_id=project_id,
+                        external_id_strictly_in=external_ids[-1:],
+                        status_in=["ONGOING"],
+                    )
+                )
+
+            if nb_assets_in_queue != 1:
                 raise MutationError("Failed to send some assets back to queue")
 
         results = _mutate_from_paginated_call(
@@ -571,6 +656,8 @@ class MutationsAsset(BaseOperationEntrypointMixin):
             last_batch_callback=verify_last_batch,
         )
         result = self.format_result("data", results[0])
+        if result is None:  # No assets have changed status
+            return
         assets_in_queue = AssetQuery(self.graphql_client, self.http_client)(
             AssetWhere(project_id=result["id"], asset_id_in=asset_ids, status_in=["ONGOING"]),
             ["id"],

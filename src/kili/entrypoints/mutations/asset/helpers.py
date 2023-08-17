@@ -9,8 +9,7 @@ from kili.utils.assets import PageResolution
 
 # pylint: disable=too-many-locals
 def process_update_properties_in_assets_parameters(
-    asset_ids: List[str],
-    *,
+    asset_ids: Optional[List[str]] = None,
     external_ids: Optional[List[str]] = None,
     priorities: Optional[List[int]] = None,
     json_metadatas: Optional[List[Union[dict, str]]] = None,
@@ -27,8 +26,10 @@ def process_update_properties_in_assets_parameters(
 ) -> Dict:
     """Process arguments of the update_properties_in_assets method
     and return the properties for the paginating loop."""
-    assert asset_ids
-    nb_assets_to_modify = len(asset_ids)
+    assets_identifier = asset_ids or external_ids
+    print(asset_ids, external_ids)
+    assert assets_identifier
+    nb_assets_to_modify = len(assets_identifier)
 
     input_handlers: Dict[str, Callable[[List], List]] = {
         "jsonMetadata": _handle_json_metadata,
