@@ -13,6 +13,7 @@ from kili.domain.issue import IssueStatus, IssueType
 from kili.presentation.client.helpers.common_validators import (
     disable_tqdm_if_as_generator,
 )
+from kili.presentation.progress_bar.progress_bar_factory import ProgressBarFactory
 from kili.use_cases.asset import AssetUseCases
 from kili.utils.logcontext import for_all_methods, log_call
 
@@ -23,6 +24,7 @@ class AssetClientMethods:
 
     kili_api_gateway: KiliAPIGateway
     http_client: requests.Session
+    progress_bar_factory: ProgressBarFactory
 
     # pylint: disable=too-many-arguments, dangerous-default-value, redefined-builtin, too-many-locals
     @overload
@@ -391,6 +393,7 @@ class AssetClientMethods:
                 )
 
         disable_tqdm = disable_tqdm_if_as_generator(as_generator, disable_tqdm)
+        self.progress_bar_factory.disable = disable_tqdm
 
         asset_use_cases = AssetUseCases(self.kili_api_gateway)
         filters = AssetFilters(
@@ -432,7 +435,7 @@ class AssetClientMethods:
             fields,
             first,
             skip,
-            disable_tqdm,
+            self.progress_bar_factory,
             download_media,
             local_media_dir,
             label_output_format,

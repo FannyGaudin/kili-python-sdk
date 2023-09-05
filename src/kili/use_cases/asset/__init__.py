@@ -8,6 +8,7 @@ from kili.adapters.kili_api_gateway.helpers.queries import QueryOptions
 from kili.core.helpers import validate_category_search_query
 from kili.domain.asset import AssetFilters
 from kili.domain.project import ProjectId
+from kili.presentation.progress_bar.progress_bar_factory import ProgressBarFactory
 from kili.services.label_data_parsing.types import Project as LabelParsingProject
 from kili.use_cases.asset.asset_label_parsing import parse_labels_of_asset
 from kili.use_cases.asset.media_downloader import get_download_assets_function
@@ -26,7 +27,7 @@ class AssetUseCases:
         fields: List[str],
         first: Optional[int],
         skip: int,
-        disable_tqdm: Optional[bool],
+        progress_bar_factory: ProgressBarFactory,
         download_media: bool,
         local_media_dir: Optional[str],
         label_output_format: Literal["dict", "parsed_label"],
@@ -43,9 +44,10 @@ class AssetUseCases:
             ProjectId(filters.project_id),
             local_media_dir,
         )
-        options = QueryOptions(skip=skip, first=first, disable_tqdm=disable_tqdm)
+        options = QueryOptions(skip=skip, first=first)
+        progress_bar = progress_bar_factory.create("Retrieving assets")
         assets_gen = self._kili_api_gateway.list_assets(
-            filters, fields, options, post_call_function
+            filters, fields, options, post_call_function, progress_bar
         )
 
         if label_output_format == "parsed_label":

@@ -17,6 +17,7 @@ from kili.adapters.kili_api_gateway.helpers.queries import (
 )
 from kili.core.graphql.graphql_client import GraphQLClient
 from kili.domain.asset import AssetFilters
+from kili.presentation.progress_bar.abstract_progress_bar import AbstractProgressBar
 
 
 class AssetOperationMixin:
@@ -30,6 +31,7 @@ class AssetOperationMixin:
         fields: List[str],
         options: QueryOptions,
         post_call_function: Optional[Callable],
+        progress_bar: AbstractProgressBar,
     ) -> Generator[Dict, None, None]:
         """List assets with given options."""
         fragment = fragment_builder(fields)
@@ -39,7 +41,12 @@ class AssetOperationMixin:
             self.graphql_client, GQL_COUNT_ASSETS, where, options
         )
         return PaginatedGraphQLQuery(self.graphql_client).execute_query_from_paginated_call(
-            query, where, options, "Retrieving assets", nb_elements_to_query, post_call_function
+            query,
+            where,
+            options,
+            progress_bar,
+            nb_elements_to_query,
+            post_call_function,
         )
 
     def count_assets(self, filters: AssetFilters) -> int:

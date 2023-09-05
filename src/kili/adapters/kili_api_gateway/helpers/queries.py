@@ -7,13 +7,12 @@ from typeguard import typechecked
 
 from kili.core.constants import QUERY_BATCH_SIZE
 from kili.core.graphql.graphql_client import GraphQLClient
-from kili.utils.tqdm import tqdm
+from kili.presentation.progress_bar.abstract_progress_bar import AbstractProgressBar
 
 
 class QueryOptions(NamedTuple):
     """Options when calling GraphQLQuery from the SDK."""
 
-    disable_tqdm: Optional[bool]
     first: Optional[int] = None
     skip: int = 0
 
@@ -43,7 +42,7 @@ class PaginatedGraphQLQuery:
         query: str,
         where: Dict[str, Any],
         options: QueryOptions,
-        tqdm_desc: str,
+        progress_bar: AbstractProgressBar,
         nb_elements_to_query: Optional[int],
         post_call_function: Optional[Callable[[List], List]] = None,
     ) -> Generator[Dict, None, None]:
@@ -60,46 +59,47 @@ class PaginatedGraphQLQuery:
                 It should take the elements of the result of the query as input and should return
                 the list of modified (or not) elements
         """
-        disable_tqdm = nb_elements_to_query is None or options.disable_tqdm
+        # disable_tqdm = nb_elements_to_query is None or options.disable_tqdm
 
-        if nb_elements_to_query == 0:
+        if not nb_elements_to_query:
             yield from ()
         else:
-            with tqdm(total=nb_elements_to_query, disable=disable_tqdm, desc=tqdm_desc) as pbar:
-                count_elements_retrieved = 0
-                while True:
-                    if (
-                        nb_elements_to_query is not None
-                        and count_elements_retrieved >= nb_elements_to_query
-                    ):
-                        break
+            progress_bar.set_total(nb_elements_to_query)
+            # with tqdm(total=nb_elements_to_query, disable=disable_tqdm, desc=tqdm_desc) as pbar:
+            count_elements_retrieved = 0
+            while True:
+                if (
+                    nb_elements_to_query is not None
+                    and count_elements_retrieved >= nb_elements_to_query
+                ):
+                    break
 
-                    skip = count_elements_retrieved + options.skip
-                    first = (
-                        min(QUERY_BATCH_SIZE, nb_elements_to_query - count_elements_retrieved)
-                        if nb_elements_to_query is not None
-                        else QUERY_BATCH_SIZE
-                    )
-                    payload = {"where": where, "skip": skip, "first": first}
-                    elements = self._graphql_client.execute(query, payload)["data"]
+                skip = count_elements_retrieved + options.skip
+                first = (
+                    min(QUERY_BATCH_SIZE, nb_elements_to_query - count_elements_retrieved)
+                    if nb_elements_to_query is not None
+                    else QUERY_BATCH_SIZE
+                )
+                payload = {"where": where, "skip": skip, "first": first}
+                elements = self._graphql_client.execute(query, payload)["data"]
 
-                    if elements is None or len(elements) == 0:
-                        break
+                if elements is None or len(elements) == 0:
+                    break
 
-                    if post_call_function is not None:
-                        elements = post_call_function(elements)
+                if post_call_function is not None:
+                    elements = post_call_function(elements)
 
-                    if isinstance(elements, Dict):
-                        yield elements
-                        break
+                if isinstance(elements, Dict):
+                    yield elements
+                    break
 
-                    yield from elements
+                yield from elements
 
-                    count_elements_retrieved += len(elements)
-                    pbar.update(len(elements))
+                count_elements_retrieved += len(elements)
+                progress_bar.update(len(elements))
 
-                    if len(elements) < first:
-                        break
+                if len(elements) < first:
+                    break
 
 
 def get_number_of_elements_to_query(

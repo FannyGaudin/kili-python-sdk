@@ -40,6 +40,7 @@ from kili.exceptions import AuthenticationFailed, UserNotFoundError
 from kili.presentation.client.asset import AssetClientMethods
 from kili.presentation.client.internal import InternalClientMethods
 from kili.presentation.client.issue import IssueClientMethods
+from kili.presentation.progress_bar.progress_bar_factory import ProgressBarFactory
 from kili.utils.logcontext import LogContext, log_call
 
 warnings.filterwarnings("default", module="kili", category=DeprecationWarning)
@@ -179,6 +180,8 @@ class Kili(  # pylint: disable=too-many-ancestors,too-many-instance-attributes
             api_key_query = APIKeyQuery(self.graphql_client, self.http_client)
             self._check_expiry_of_key_is_close(api_key_query, self.api_key)
 
+        self.progress_bar_factory = ProgressBarFactory()
+
         self.internal = InternalClientMethods(self)
 
     @log_call
@@ -220,7 +223,7 @@ class Kili(  # pylint: disable=too-many-ancestors,too-many-instance-attributes
         api_keys = api_key_query(
             fields=["expiryDate"],
             where=APIKeyWhere(api_key=api_key),
-            options=QueryOptions(disable_tqdm=True),
+            options=QueryOptions(),
         )
 
         key_expiry = datetime.strptime(next(api_keys)["expiryDate"], r"%Y-%m-%dT%H:%M:%S.%fZ")
