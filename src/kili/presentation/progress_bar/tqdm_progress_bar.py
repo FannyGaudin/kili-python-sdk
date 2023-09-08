@@ -1,9 +1,13 @@
+from typing import Optional
+
 from tqdm import tqdm
 
+from .abstract_progress_bar import AbstractProgressBar
 
-class TqdmProgressBar:
-    def __init__(self, description: str):
-        self._progress_bar = tqdm(desc=description, colour="#ff8200", ascii="░▒█")
+
+class TqdmProgressBar(AbstractProgressBar):
+    def __init__(self, description: str, disable: Optional[bool] = False):
+        self._progress_bar = tqdm(desc=description, colour="#ff8200", ascii="░▒█", disable=disable)
 
     def update(self, value: int):
         self._progress_bar.update(value)
