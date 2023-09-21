@@ -224,7 +224,7 @@ def test_kili_export_labels_non_normalized_pdf(mocker: pytest_mock.MockerFixture
             }
         },
     }
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch("kili.entrypoints.queries.label.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
@@ -368,7 +368,7 @@ def test_kili_export_labels_non_normalized_image(mocker: pytest_mock.MockerFixtu
         },
     }
 
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch("kili.entrypoints.queries.label.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
@@ -437,7 +437,7 @@ def test_kili_export_labels_non_normalized_video(mocker: pytest_mock.MockerFixtu
         "id": "fake_proj_id",
     }
 
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch("kili.entrypoints.queries.label.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val

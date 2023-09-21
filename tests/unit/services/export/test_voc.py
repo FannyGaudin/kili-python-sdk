@@ -45,7 +45,7 @@ def test_when_exporting_to_voc_given_a_project_with_data_connection_then_it_shou
         "title": "",
         "id": "fake_proj_id",
     }
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
     )

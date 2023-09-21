@@ -17,7 +17,7 @@ def test_kili_export_labels_geojson(mocker: pytest_mock.MockerFixture):
         "id": "fake_proj_id",
         "description": "fake proj description",
     }
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
     )

@@ -789,7 +789,7 @@ def test_export_service_errors(mocker_project, name, test_case, error):
 
 def test_export_with_asset_filter_kwargs(mocker):
     get_project_return_val = {"jsonInterface": {}, "inputType": "", "title": ""}
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
     )
@@ -869,7 +869,7 @@ def test_export_with_asset_filter_kwargs(mocker):
 
 def test_export_with_asset_filter_kwargs_unknown_arg(mocker):
     get_project_return_val = {"jsonInterface": {}, "inputType": "", "title": ""}
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
     )
@@ -913,7 +913,7 @@ def mock_kili(mocker, with_data_connection):
         "description": "This is a mocked project",
         "id": "fake_proj_id",
     }
-    mocker.patch("kili.services.export.get_project", return_value=get_project_return_val)
+    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
     mocker.patch(
         "kili.services.export.format.base.get_project", return_value=get_project_return_val
     )
