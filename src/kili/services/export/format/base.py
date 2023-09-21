@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Tuple, cast
+from kili.adapters.kili_api_gateway import KiliAPIGateway
 
 from kili.adapters.kili_api_gateway.helpers.queries import QueryOptions
 from kili.core.graphql.operations.data_connection.queries import (
@@ -33,7 +34,6 @@ from kili.services.export.types import (
     LabelFormat,
     SplitOption,
 )
-from kili.services.project import get_project
 from kili.services.types import Job
 from kili.utils.tempfile import TemporaryDirectory
 
@@ -61,7 +61,7 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         export_params: ExportParams,
-        kili,
+        kili_api_gateway: KiliAPIGateway,
         logger: logging.Logger,
         disable_tqdm: Optional[bool],
         content_repository: AbstractContentRepository,
@@ -74,7 +74,7 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
         self.single_file: bool = export_params.single_file
         self.split_option: SplitOption = export_params.split_option
         self.disable_tqdm: Optional[bool] = disable_tqdm
-        self.kili = kili
+        self.kili_api_gateway: KiliAPIGateway = kili_api_gateway
         self.logger: logging.Logger = logger
         self.content_repository: AbstractContentRepository = content_repository
         self.output_file = export_params.output_file
@@ -84,8 +84,8 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
         self.asset_filter_kwargs = export_params.asset_filter_kwargs
         self.normalized_coordinates = export_params.normalized_coordinates
 
-        self.project = get_project(
-            self.kili, self.project_id, ["jsonInterface", "inputType", "title", "description", "id"]
+        self.project = kili_api_gateway.get_project(
+            self.project_id, ["jsonInterface", "inputType", "title", "description", "id"]
         )
 
     @abstractmethod
@@ -168,7 +168,7 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
         with TemporaryDirectory() as export_root_folder:
             self.export_root_folder = export_root_folder
             assets = fetch_assets(
-                self.kili,
+                self.kili_api_gateway,
                 project_id=self.project_id,
                 asset_ids=self.assets_ids,
                 export_type=self.export_type,
@@ -207,7 +207,7 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
 
     def _has_data_connection(self) -> bool:
         data_connections_gen = DataConnectionsQuery(
-            self.kili.graphql_client, self.kili.http_client
+            self.kili_api_gateway.graphql_client, self.kili_api_gateway.http_client
         )(
             where=DataConnectionsWhere(project_id=self.project_id),
             fields=["id"],
@@ -229,7 +229,7 @@ class AbstractExporter(ABC):  # pylint: disable=too-many-instance-attributes
             or self.normalized_coordinates is not None
         ):
             has_geotiff_asset = any(
-                is_geotiff_asset_with_lat_lon_coords(asset, self.kili.http_client)
+                is_geotiff_asset_with_lat_lon_coords(asset, self.kili_api_gateway.http_client)
                 for asset in assets
             )
 

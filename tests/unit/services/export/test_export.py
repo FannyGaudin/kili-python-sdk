@@ -621,7 +621,7 @@ def get_file_tree(folder: str):
         ),
     ],
 )
-def test_export_service_layout(mocker: pytest_mock.MockerFixture, name, test_case):
+def test_export_service_layout(mocker: pytest_mock.MockerFixture, name, test_case, kili_api_gateway):
     mocker.patch.object(ProjectQuery, "__call__", side_effect=mocked_ProjectQuery)
     mocker_ffmpeg = mocker.patch("kili.services.export.media.video.ffmpeg")
     mocker.patch(
@@ -635,10 +635,11 @@ def test_export_service_layout(mocker: pytest_mock.MockerFixture, name, test_cas
 
         mock_ffmpeg(mocker_ffmpeg)
 
-        fake_kili = FakeKili()
-        fake_kili.kili_api_gateway.list_assets.side_effect = mocked_AssetQuery
-        fake_kili.kili_api_gateway.count_assets.side_effect = mocked_AssetQuery_count
-        fake_kili.kili_api_gateway.get_project.side_effect = mocked_kili_api_gateway_get_project
+        kili_api_gateway.list_assets.side_effect = mocked_AssetQuery
+        kili_api_gateway.count_assets.side_effect = mocked_AssetQuery_count
+        kili_api_gateway.get_project.side_effect = mocked_kili_api_gateway_get_project
+        # kili_api_gateway.get_project.side_effect = mocked_ProjectQuery
+
         default_kwargs = {
             "asset_ids": [],
             "split_option": "merged",
@@ -656,7 +657,7 @@ def test_export_service_layout(mocker: pytest_mock.MockerFixture, name, test_cas
         default_kwargs.update(test_case["export_kwargs"])
 
         export_labels(
-            fake_kili,  # type: ignore
+            kili_api_gateway,  # type: ignore
             **default_kwargs,
         )
 
@@ -756,15 +757,15 @@ def test_export_service_layout(mocker: pytest_mock.MockerFixture, name, test_cas
     ],
 )
 @patch.object(ProjectQuery, "__call__", side_effect=mocked_ProjectQuery)
-def test_export_service_errors(mocker_project, name, test_case, error):
+def test_export_service_errors(mocker_project, name, test_case, error, kili_api_gateway):
     with TemporaryDirectory() as export_folder:
         path_zipfile = Path(export_folder) / "export.zip"
         path_zipfile.parent.mkdir(parents=True, exist_ok=True)
 
-        fake_kili = FakeKili()
-        fake_kili.kili_api_gateway.list_assets.side_effect = mocked_AssetQuery
-        fake_kili.kili_api_gateway.count_assets.side_effect = mocked_AssetQuery_count
-        fake_kili.kili_api_gateway.get_project.side_effect = mocked_kili_api_gateway_get_project
+        kili_api_gateway.list_assets.side_effect = mocked_AssetQuery
+        kili_api_gateway.list_assets.side_effect = mocked_AssetQuery
+        kili_api_gateway.count_assets.side_effect = mocked_AssetQuery_count
+        kili_api_gateway.get_project.side_effect = mocked_kili_api_gateway_get_project
         default_kwargs = {
             "asset_ids": [],
             "split_option": "merged",
@@ -782,7 +783,7 @@ def test_export_service_errors(mocker_project, name, test_case, error):
         default_kwargs.update(test_case["export_kwargs"])
         with pytest.raises(error):
             export_labels(
-                fake_kili,  # type: ignore
+                kili_api_gateway,  # type: ignore
                 **default_kwargs,
             )
 
@@ -913,10 +914,6 @@ def mock_kili(mocker, with_data_connection):
         "description": "This is a mocked project",
         "id": "fake_proj_id",
     }
-    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
-    mocker.patch(
-        "kili.services.export.format.base.get_project", return_value=get_project_return_val
-    )
     if with_data_connection:
         mocker.patch(
             "kili.services.export.format.base.DataConnectionsQuery.__call__",

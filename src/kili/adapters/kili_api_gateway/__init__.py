@@ -20,3 +20,8 @@ class KiliAPIGateway(
         """Initialize the Kili API Gateway."""
         self.graphql_client = graphql_client
         self.http_client = http_client
+
+    @property
+    def api_endpoint(self) -> str:
+        """Return the API endpoint."""
+        return self.graphql_client.endpoint

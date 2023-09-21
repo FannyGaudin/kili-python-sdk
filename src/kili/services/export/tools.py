@@ -3,6 +3,7 @@ import warnings
 from typing import Dict, List, Optional
 
 from kili.adapters.http_client import HttpClient
+from kili.adapters.kili_api_gateway import KiliAPIGateway
 from kili.adapters.kili_api_gateway.helpers.queries import QueryOptions
 from kili.core.constants import QUERY_BATCH_SIZE
 from kili.core.helpers import validate_category_search_query
@@ -74,7 +75,7 @@ THRESHOLD_WARN_MANY_ASSETS = 1000
 
 # pylint: disable=too-many-arguments, too-many-locals, missing-type-doc
 def fetch_assets(
-    kili,
+    kili_api_gateway: KiliAPIGateway,
     project_id: str,
     asset_ids: Optional[List[AssetId]],
     export_type: ExportType,
@@ -144,19 +145,21 @@ def fetch_assets(
     filters = AssetFilters(**asset_where_params)
 
     if download_media:
-        count = kili.kili_api_gateway.count_assets(filters)
+        count = kili_api_gateway.count_assets(filters)
         if count > THRESHOLD_WARN_MANY_ASSETS:
             warnings.warn(
-                f"Downloading many assets ({count}). This might take a while. Consider"
-                " disabling assets download in the options.",
+                (
+                    f"Downloading many assets ({count}). This might take a while. Consider"
+                    " disabling assets download in the options."
+                ),
                 stacklevel=3,
             )
 
     options = QueryOptions(disable_tqdm=disable_tqdm)
     download_media_function, fields = get_download_assets_function(
-        kili.kili_api_gateway, download_media, fields, ProjectId(project_id), local_media_dir
+        kili_api_gateway, download_media, fields, ProjectId(project_id), local_media_dir
     )
-    assets_gen = kili.kili_api_gateway.list_assets(filters, fields, options)
+    assets_gen = kili_api_gateway.list_assets(filters, fields, options)
     if download_media_function is not None:
         assets: List[Dict] = []
         # TODO: modify download_media function so it can take a generator of assets

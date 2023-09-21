@@ -4,8 +4,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import pytest_mock
 import requests
 from PIL import Image
+from kili.adapters.kili_api_gateway import KiliAPIGateway
 
 from kili.entrypoints.queries.label import QueriesLabel
 from kili.orm import Asset
@@ -569,16 +571,14 @@ def test_coco_export_with_multi_jobs():
         )
 
 
-def test_when_exporting_to_coco_given_a_project_with_data_connection_then_it_should_crash(mocker):
+def test_when_exporting_to_coco_given_a_project_with_data_connection_then_it_should_crash(
+    mocker: pytest_mock.MockerFixture, kili_api_gateway: KiliAPIGateway
+):
     get_project_return_val = {
         "jsonInterface": {"jobs": {"JOB": {"tools": ["rectangle"], "mlTask": "OBJECT_DETECTION"}}},
         "inputType": "IMAGE",
         "title": "",
     }
-    mocker.patch("kili.services.export.export.get_project", return_value=get_project_return_val)
-    mocker.patch(
-        "kili.services.export.format.base.get_project", return_value=get_project_return_val
-    )
     mocker.patch.object(KiliExporter, "_check_arguments_compatibility", return_value=None)
     mocker.patch.object(KiliExporter, "_check_project_compatibility", return_value=None)
     mocker.patch(
@@ -589,9 +589,8 @@ def test_when_exporting_to_coco_given_a_project_with_data_connection_then_it_sho
     kili = QueriesLabel()
     kili.api_key = ""  # type: ignore
     kili.api_endpoint = "https://"  # type: ignore
-    kili.graphql_client = mocker.MagicMock()
-    kili.http_client = mocker.MagicMock()
-    kili.kili_api_gateway = mocker.MagicMock()
+
+    kili.kili_api_gateway = kili_api_gateway
     kili.kili_api_gateway.get_project.return_value = get_project_return_val
 
     with pytest.raises(

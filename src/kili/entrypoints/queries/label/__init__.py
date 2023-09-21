@@ -841,7 +841,7 @@ class QueriesLabel(BaseOperationEntrypointMixin):
 
         try:
             export_labels(
-                self,
+                self.kili_api_gateway,
                 asset_ids=resolved_asset_ids,
                 project_id=ProjectId(project_id),
                 export_type="latest",
