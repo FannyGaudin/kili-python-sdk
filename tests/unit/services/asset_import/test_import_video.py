@@ -7,7 +7,11 @@ from kili.adapters.kili_api_gateway.asset import AssetOperationMixin
 from kili.core.graphql.operations.organization.queries import OrganizationQuery
 from kili.core.graphql.operations.project.queries import ProjectQuery
 from kili.services.asset_import import import_assets
-from kili.services.asset_import.exceptions import UploadFromLocalDataForbiddenError
+from kili.services.asset_import.exceptions import (
+    UploadFromLocalDataForbiddenError,
+    VariableFrameRateForbiddenError,
+)
+from kili.utils import tempfile
 from tests.unit.services.asset_import.base import ImportTestCase
 from tests.unit.services.asset_import.mocks import (
     mocked_organization_with_upload_from_local,
@@ -15,6 +19,9 @@ from tests.unit.services.asset_import.mocks import (
     mocked_request_signed_urls,
     mocked_unique_id,
     mocked_upload_data_via_rest,
+)
+from tests.unit.services.asset_import.video_generator import (
+    generate_video_with_variable_fps,
 )
 
 
@@ -305,6 +312,23 @@ class VideoTestCase(ImportTestCase):
             [expected_json_metadata],
         )
         self.kili.graphql_client.execute.assert_called_with(*expected_parameters)
+
+    def test_given_a_video_with_a_variable_frame_rate_when_i_try_to_upload_it_then_it_is_rejected(
+        self, *_
+    ):
+        # Given
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = tmpdir / "video.mp4"
+            generate_video_with_variable_fps(file_path)
+            assets = [
+                {
+                    "content": str(file_path),
+                    "external_id": "video with variable frame rate",
+                }
+            ]
+
+            with pytest.raises(VariableFrameRateForbiddenError):
+                import_assets(self.kili, self.project_id, assets, disable_tqdm=True)
 
 
 @patch("kili.utils.bucket.request_signed_urls", mocked_request_signed_urls)

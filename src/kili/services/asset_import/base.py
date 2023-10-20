@@ -4,6 +4,7 @@ import abc
 import logging
 import mimetypes
 import os
+import subprocess
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from itertools import repeat
@@ -39,6 +40,7 @@ from kili.services.asset_import.exceptions import (
     ImportValidationError,
     MimeTypeError,
     UploadFromLocalDataForbiddenError,
+    VariableFrameRateForbiddenError,
 )
 from kili.services.asset_import.types import AssetLike, KiliResolverAsset
 from kili.utils import bucket
@@ -400,6 +402,30 @@ class BaseAbstractAssetImporter(abc.ABC):
     def _check_upload_is_allowed(self, assets: List[AssetLike]) -> None:
         if not self.is_hosted_content(assets) and not self._can_upload_from_local_data():
             raise UploadFromLocalDataForbiddenError("Cannot upload content from local data")
+        if self._has_variable_frame_rate(assets):
+            raise VariableFrameRateForbiddenError("Cannot upload videos with variable frame rate")
+
+    @staticmethod
+    def _has_variable_frame_rate(assets: List[AssetLike]) -> bool:
+        """Check if at least one video has a variable frame rate."""
+        return any(
+            BaseAbstractAssetImporter._has_video_variable_frame_rate(asset["content"])
+            for asset in assets
+        )
+
+    @staticmethod
+    def _has_video_variable_frame_rate(video_path: str) -> bool:
+        """Check if a video has a variable frame rate."""
+        # probe = ffmpeg.probe(video_path)
+        # return "avg_frame_rate" not in probe["streams"][0]
+        command = (
+            "ffprobe -v 0 -select_streams v -of csv=p=0 -show_entries frame=pkt_pts_time"
+            f" {video_path}"
+        )
+        result = subprocess.check_output(command, shell=True).decode("utf-8")
+        frame_times = [float(time) for time in result.strip().split("\n")]
+        frame_intervals = [frame_times[i + 1] - frame_times[i] for i in range(len(frame_times) - 1)]
+        return len(set(frame_intervals)) > 1
 
     def filter_local_assets(self, assets: List[AssetLike], raise_error: bool):
         """Filter out local files that cannot be imported.

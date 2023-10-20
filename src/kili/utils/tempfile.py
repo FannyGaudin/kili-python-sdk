@@ -7,10 +7,10 @@ from pathlib import Path
 class TemporaryDirectory:
     """Wrapper over temporary directory to output paths."""
 
-    def __init__(self) -> None:
-        self.temporary_directory = (
-            tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
-        )
+    def __init__(self, *args, **kwargs) -> None:
+        self.temporary_directory = tempfile.TemporaryDirectory(
+            *args, **kwargs
+        )  # pylint: disable=consider-using-with
 
     def __enter__(self) -> Path:
         return Path(self.temporary_directory.__enter__())

@@ -18,3 +18,7 @@ class UploadFromLocalDataForbiddenError(Exception):
 
 class BatchImportError(Exception):
     """Raised when an error occurs during the import a batch of assets."""
+
+
+class VariableFrameRateForbiddenError(Exception):
+    """Raised when a video with variable frame rate is uploaded."""
