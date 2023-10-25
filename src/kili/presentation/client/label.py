@@ -1,5 +1,6 @@
 """Client presentation methods for labels."""
 
+from pathlib import Path
 from typing import (
     Dict,
     Generator,
@@ -780,3 +781,10 @@ class LabelClientMethods(BaseClientMethods):
             disable_tqdm=disable_tqdm,
         )
         return cast(List[str], deleted_label_ids)
+
+    def import_labels(
+            self,
+            coco_file: Union[str, Path],
+            fmt: LabelFormat,
+            project_title="my coco import"
+    ):

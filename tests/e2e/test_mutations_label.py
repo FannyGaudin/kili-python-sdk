@@ -1,8 +1,12 @@
+import json
+from tempfile import NamedTemporaryFile
 from typing import Dict
 
 import pytest
 
 from kili.client import Kili
+from kili.utils.tempfile import TemporaryDirectory
+from tests.shared.utils.coco import generate_coco_file_structure
 
 
 @pytest.fixture()
@@ -163,3 +167,21 @@ def test_append_many_labels(kili: Kili, project_and_asset_id):
     )
 
     assert kili.count_labels(project_id=project_id) == N_LABELS
+
+
+def test_given_a_coco_file_when_i_call_import_labels_then_it_creates_a_kili_project(kili: Kili):
+    # Given
+    with TemporaryDirectory() as tmpdirname:
+        coco_file = generate_coco_file_structure(tmpdirname)
+
+        # When
+        result = kili.import_labels(coco_file, fmt="coco", project_title="my coco import")
+
+    # Then
+    assert "project" in result
+    assert "id" in result["project"]
+    assert "name" in result["project"]
+    assert result["project"]["name"] == "my coco import"
+    assert "assets" in result
+    assert "id" in result["assets"][0]
+    assert "external_id" in result["assets"][0]
