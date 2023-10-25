@@ -14,6 +14,7 @@ LabelId = NewType("LabelId", str)
 
 LabelType = Literal["AUTOSAVE", "DEFAULT", "INFERENCE", "PREDICTION", "REVIEW"]
 
+LabelImportFormat = Literal["coco"]
 
 @dataclass
 class LabelFilters:

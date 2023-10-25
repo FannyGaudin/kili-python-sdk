@@ -1,5 +1,7 @@
+from copy import deepcopy
 import json
 from pathlib import Path
+from typing import Dict, List
 from PIL import Image
 
 
@@ -9,23 +11,22 @@ def _generate_image_file(path_image: Path) -> None:
         Image.new("RGB", (640, 480)).save(f)
 
 
-def generate_coco_file_structure(target_dir: Path) -> Path:
+def generate_coco_file_structure(
+    target_dir: Path, images: List[Dict], annotations: List[Dict], categories: List[Dict]
+) -> Path:
     """Generate a coco file structure in the target directory."""
 
-    path_image_1 = target_dir / "image1.jpg"
-    _generate_image_file(path_image_1)
-
-    path_image_2 = target_dir / "image2.jpg"
-    _generate_image_file(path_image_2)
+    images_coco = deepcopy(images)
+    for image in images_coco:
+        path_image = target_dir / image["file_name"]
+        _generate_image_file(path_image)
+        image["file_name"] = str(path_image)
 
     coco_data = {
         "info": {"year": 2021},
-        "images": [{"id": 1, "file_name": path_image_1}, {"id": 2, "file_name": path_image_2}],
-        "annotations": [
-            {"id": 1, "image_id": 1, "category_id": 1},
-            {"id": 2, "image_id": 2, "category_id": 2},
-        ],
-        "categories": [{"id": 1, "name": "cat1"}, {"id": 2, "name": "cat2"}],
+        "images": images_coco,
+        "annotations": annotations,
+        "categories": categories,
     }
 
     coco_filename = target_dir / "coco.json"

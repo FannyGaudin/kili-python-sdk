@@ -19,13 +19,14 @@ from kili.adapters.kili_api_gateway.helpers.queries import QueryOptions
 from kili.core.helpers import is_empty_list_with_warning, validate_category_search_query
 from kili.domain.asset import AssetExternalId, AssetFilters, AssetStatus
 from kili.domain.asset.asset import AssetId
-from kili.domain.label import LabelFilters, LabelId, LabelType
+from kili.domain.label import LabelFilters, LabelId, LabelImportFormat, LabelType
 from kili.domain.project import ProjectFilters, ProjectId
 from kili.domain.types import ListOrTuple
 from kili.domain.user import UserFilter, UserId
 from kili.presentation.client.helpers.common_validators import (
     disable_tqdm_if_as_generator,
 )
+from kili.services.label_import.types import LabelFormat
 from kili.use_cases.label import LabelUseCases
 from kili.utils.labels.parsing import ParsedLabel
 from kili.utils.logcontext import for_all_methods, log_call
@@ -784,7 +785,13 @@ class LabelClientMethods(BaseClientMethods):
 
     def import_labels(
             self,
-            coco_file: Union[str, Path],
-            fmt: LabelFormat,
-            project_title="my coco import"
+            input_file: Union[str, Path],
+            fmt: LabelImportFormat,
+            project_title: str
     ):
+        label_use_cases = LabelUseCases(self.kili_api_gateway)
+        result = label_use_cases.import_labels(
+            Path(input_file)
+            fmt,
+            project_title)
+        return result

@@ -1,11 +1,14 @@
 """Label use cases."""
 
 from functools import partial
+from pathlib import Path
 from typing import Dict, Generator, List, Literal, Optional
 
 from kili.adapters.kili_api_gateway.helpers.queries import QueryOptions
 from kili.adapters.kili_api_gateway.label.types import UpdateLabelData
+from kili.domain.asset import AssetId, AssetExternalId
 from kili.domain.label import LabelFilters, LabelId
+from kili.domain.label_importer import ImportedAsset, ImportedProject, LabelImporterResult
 from kili.domain.project import ProjectId
 from kili.domain.types import ListOrTuple
 from kili.use_cases.base import BaseUseCases
@@ -81,3 +84,12 @@ class LabelUseCases(BaseUseCases):
     ) -> List[LabelId]:
         """Delete labels."""
         return self._kili_api_gateway.delete_labels(ids=ids, disable_tqdm=disable_tqdm)
+
+    def import_labels(
+        self, input_file: Path, fmt: Literal["coco"], project_title: Optional[str]
+    ) -> LabelImporterResult:
+        """Import labels."""
+        return LabelImporterResult(
+            ImportedProject(ProjectId(""), ""),
+            [ImportedAsset(AssetId(""), AssetExternalId(""))],
+        )
