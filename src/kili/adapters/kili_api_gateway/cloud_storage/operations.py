@@ -80,3 +80,14 @@ GQL_COUNT_DATA_INTEGRATIONS = """
       data: countDataIntegrations(where: $where)
     }
     """
+
+
+def get_create_integration_mutation(fragment: str) -> str:
+    """Return the GraphQL mutation to create a data integration."""
+    return f"""
+        mutation CreateDataIntegration($data: DataIntegrationData!) {{
+          createDataIntegration(data: $data) {{
+            {fragment}
+          }}
+        }}
+        """
