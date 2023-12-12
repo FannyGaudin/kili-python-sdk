@@ -14,6 +14,7 @@ from kili.domain.cloud_storage import (
     DataConnectionId,
     DataDifferenceType,
     DataIntegrationFilters,
+    DataIntegrationId,
 )
 from kili.domain.types import ListOrTuple
 
@@ -26,6 +27,7 @@ from .mappers import (
 )
 from .operations import (
     GQL_COUNT_DATA_INTEGRATIONS,
+    GQL_DELETE_DATA_INTEGRATION,
     get_add_data_connection_mutation,
     get_compute_data_connection_differences_mutation,
     get_create_integration_mutation,
@@ -133,4 +135,10 @@ class CloudStorageOperationMixin(BaseOperationMixin):
         query = get_create_integration_mutation(fragment)
         variables = create_integration_data_mapper(data)
         result = self.graphql_client.execute(query, variables)
+        return result["data"]
+
+    def delete_data_integration(self, data_integration_id: DataIntegrationId) -> Dict:
+        """Delete a data integration."""
+        variables = {"where": {"id": data_integration_id}}
+        result = self.graphql_client.execute(GQL_DELETE_DATA_INTEGRATION, variables)
         return result["data"]
