@@ -137,7 +137,7 @@ class CloudStorageOperationMixin(BaseOperationMixin):
         result = self.graphql_client.execute(query, variables)
         return result["data"]
 
-    def delete_data_integration(self, data_integration_id: DataIntegrationId) -> Dict:
+    def delete_data_integration(self, data_integration_id: DataIntegrationId) -> str:
         """Delete a data integration."""
         variables = {"where": {"id": data_integration_id}}
         result = self.graphql_client.execute(GQL_DELETE_DATA_INTEGRATION, variables)
